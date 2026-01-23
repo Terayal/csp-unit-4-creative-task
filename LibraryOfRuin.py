@@ -289,7 +289,7 @@ def CreateDeckList(ListOfNames):
 def CreateCard(color,cost,name,dice):
     FullCard = Group()
     #seperates the lists because I got destroyed by that a while back
-    NewDiceList = lista(dice)
+    NewDiceList = list(dice)
     Image = Rect(0,0,app.CardWidth/2,100, border = color, borderWidth = 4)
     FullCard.color = color
     CostCircle = Circle(10,10,10,fill = color)
@@ -335,7 +335,7 @@ def CopyCard(Card,NewList):
     FullCard.add(Image,CostCircle,CostNumber,NameBox,NameText)
     #---------------------------------------------------------------------
     StartY = app.YStart
-    NewDiceList = lista(Card.DiceList)
+    NewDiceList = list(Card.DiceList)
     
     for Die in NewDiceList:
         IconCircle = Circle(app.Xdisplace,StartY,4,fill=Die.color)
@@ -358,7 +358,7 @@ def CreateCharacter(x,y,facing,ControlledByPlayer, SpeedDiceList,Decklist,MaxLig
     FullCharacter.MaxLight = MaxLight
     FullCharacter.MaxHandSize = MaxHandSize
     FullCharacter.Light = MaxLight
-    NewSpeedDiceList = lista(SpeedDiceList)
+    NewSpeedDiceList = list(SpeedDiceList)
     
     for Die in NewSpeedDiceList:
         Die.ConnectedCharacter = FullCharacter

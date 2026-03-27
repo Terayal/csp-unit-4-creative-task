@@ -1,10 +1,11 @@
 from cmu_graphics import *
 #Library game???
-#Library game???
 #lista becomes list because lista doesnt exista
+#I am switching to VS code fully because of file size problems on CMU
 import random
 import math
 app.Startup = True
+app.Debug = False
 app.PlayerConfirm = False
 app.PlayerConfirmStage = 0
 app.CardWidth = 120
@@ -13,7 +14,6 @@ app.YStart = 40
 app.FontSizeModifier = 2
 app.MouseX = 0
 app.MouseY = 0
-#Ropes
 AllTotalCards = []
 AllDisplayCards = []
 app.DisplayedHandCards = []
@@ -31,12 +31,14 @@ DeadSpeedDice = []
 app.PausedForClash = False
 app.CurrentSpeedBracket = -1
 app.ActingDice = []
-app.CharacterSpeed = 5
-Background = Rect(0,0,400,400,fill="burlywood")
-app.BlackScreen = Rect(0,0,400,400,visible = False)
-app.GamoverText = Label("Game Over",200,200, fill = "white",visible = False, size = 20)
-app.WinText = Label("You Win",200,200, fill = "white",visible = False, size =20)
-app.ContinueText = Label("Press Space To Continue",200,250, fill = "white",visible = False)
+app.CharacterSpeed = 10
+Background = Rect(0,0,app.width,app.height,fill="burlywood")
+app.XScreenDialation = app.width / 400
+app.YScreenDialation = app.height / 400
+app.BlackScreen = Rect(0,0,app.width,app.height,visible = False)
+app.GamoverText = Label("Game Over",app.width/2,app.height/2, fill = "white",visible = False, size = 20)
+app.WinText = Label("You Win",app.width/2,app.height/2, fill = "white",visible = False, size =20)
+app.ContinueText = Label("Press Space To Continue",app.width/2,app.height/2 + 50 * app.YScreenDialation, fill = "white",visible = False)
 app.AutoProgressPages = True
 app.AutoProgressStagesForTesting = False
 app.AutoProgressTimer = 10
@@ -59,12 +61,15 @@ app.AttributionMax = 6
 app.UnlockedAttribution = False
 app.StagesUnlocked = 1
 app.FightsUnlocked = 1
-app.EnlightenmentUnlocked = 0
+app.CurrentEmotionLevelCap = 1
+app.CurrentTeamEmotionLevel = 0
 app.SinglePressLock = False
 app.StoryStages = []
 app.StageSymbols = []
-app.EnlightenmentStages = []
-app.EnlightenmentStageSymbols = []
+
+app.Floors = [] 
+app.CurrentFloor = None
+app.DisplayedFloor = None
 app.CurrentBattle = None
 app.CurrentFight = None
 app.CurrentPart = 0
@@ -77,68 +82,111 @@ app.FadingParticles = []
 #Inputs
 def onMousePress(x,y):
     if app.SinglePressLock == False:
+        print(app.width)
+        print(app.height)
         #app.SinglePressLock = True
         app.MouseX = x
         app.MouseY = y
         if app.InAFight:
-            AllDice = PlayerSpeedDice + EnemySpeedDice
-            #print(AllDice)
-            
-            ClickedBackground = True
-            for Die in PlayerSpeedDice:
-                if Die.ConnectedSprite.hits(x,y):
-                    ClickedBackground = False
-                    for PDie in PlayerSpeedDice:
-                        if PDie != Die:
-                            PDie.Clicked = False
-                            RemoveTargetLine(PDie)
-                    
-                    
-            for Die in EnemySpeedDice:
-                if Die.ConnectedSprite.hits(x,y):
-                    ActiveSpeedDie = None
-                    ActiveCard = None
-                    
-                    for PDie in PlayerSpeedDice:
-                        if PDie.Clicked:
-                            ActiveSpeedDie = PDie
+            if app.PlayerConfirmStage == 7:
+                print("choosing an abno page")
+                for Button in app.TemporaryButtons:
+                    if Button.hits(x,y):
+                        if Button.Type == "Page":
+                            app.ChosenAbnoPage = Button.ConnectedPage
+                            app.PlayerConfirmStage = 8
+                            DeleteTempButtons()
+                            ReminderText = Label("Please pick a character to apply to!!!",200 * app.XScreenDialation,350 * app.YScreenDialation,size = 20)
+                            app.TemporaryButtons.append(ReminderText)
                             
-                    for PCard in app.DisplayedHandCards:
-                        if PCard.Clicked:
-                            ActiveCard = PCard
+            elif app.PlayerConfirmStage == 8:
+                print("choosing a character for abno page")
+                ChosenCharacter = None
+                for Die in PlayerSpeedDice:
+                    if Die.ConnectedSprite.hits(x,y):
+                        ChosenCharacter = Die.ConnectedCharacter
+                
+                for Character in AllFightingCharacters:
+                    if Character.ControlledByPlayer and Character.CharacterSprite.hits(x,y):
+                        ChosenCharacter = Character
+                
+                if ChosenCharacter != None:
+                    print("Chose " + Character.name)
+                    for Effect in app.ChosenAbnoPage.Effect:
+                        AddPassiveEffect(ChosenCharacter,Effect)
+                    app.PlayerConfirmStage = 0
+                    for Button in app.TemporaryButtons:
+                        Button.visible = False
+                    app.TemporaryButtons.clear()
+                
+            else:
+                AllDice = PlayerSpeedDice + EnemySpeedDice
+                #print(AllDice)
+                
+                ClickedBackground = True
+                for Die in PlayerSpeedDice:
+                    if Die.ConnectedSprite.hits(x,y):
+                        ClickedBackground = False
+                        for PDie in PlayerSpeedDice:
+                            if PDie != Die:
+                                PDie.Clicked = False
+                                RemoveTargetLine(PDie)
+                        
+                        
+                for Die in EnemySpeedDice:
+                    if Die.ConnectedSprite.hits(x,y):
+                        ActiveSpeedDie = None
+                        ActiveCard = None
+                        
+                        for PDie in PlayerSpeedDice:
+                            if PDie.Clicked:
+                                ActiveSpeedDie = PDie
+                                
+                        for PCard in app.DisplayedHandCards:
+                            if PCard.Clicked:
+                                ActiveCard = PCard
+                                
+                        if ActiveSpeedDie != None and ActiveCard != None and app.PlayerConfirmStage == 1:
                             
-                    if ActiveSpeedDie != None and ActiveCard != None and app.PlayerConfirmStage == 1:
-                        
-                        TargetWithPage(ActiveSpeedDie, ActiveCard, ActiveSpeedDie.ConnectedCharacter, Die)
-                        
-            for Card in app.DisplayedHandCards:
-                if Card.hits(x,y):
-                    ClickedBackground = False
-                    Card.Clicked = True
-                    print("did hit card")
-                elif Card.Clicked:
-                    Card.Clicked = False
-                else:
-                    if ClickedBackground:
+                            TargetWithPage(ActiveSpeedDie, ActiveCard, ActiveSpeedDie.ConnectedCharacter, Die)
+                            
+                for Card in app.DisplayedHandCards:
+                    if Card.hits(x,y):
+                        ClickedBackground = False
+                        Card.Clicked = True
+                        print("did hit card")
+                    elif Card.Clicked:
                         Card.Clicked = False
-            
-
-            for Die in AllDice:
-                if Die.ConnectedSprite.hits(x,y):
-                    Die.Clicked = True
-                    print("this die's speed is: " + str(Die.speed) + " Connected to: " + Die.ConnectedCharacter.name)
-                    pass
-                else:
-                    if ClickedBackground:
-                        Die.Clicked = False
-                        RemoveTargetLine(Die)
-            
-            for Character in AllFightingCharacters:
-                if Character.CharacterSprite.hits(x,y):
-                    Character.Clicked = True
-                else:
-                    if ClickedBackground:
-                        Character.Clicked = False
+                    else:
+                        if ClickedBackground:
+                            Card.Clicked = False
+                
+    
+                for Die in AllDice:
+                    if Die.ConnectedSprite.hits(x,y):
+                        Die.Clicked = True
+                        print("this die's speed is: " + str(Die.speed) + " Connected to: " + Die.ConnectedCharacter.name)
+                        pass
+                    else:
+                        if ClickedBackground:
+                            Die.Clicked = False
+                            RemoveTargetLine(Die)
+                if app.Debug == True:
+                    for Character in AllCharacters:
+                        if Character.CharacterSprite.hits(x,y):
+                            print("Clicked: " + Character.name)
+                            if Character.visible == True:
+                                print("Who is visisble")
+                            else:
+                                print("Who is invisisble")
+                        
+                for Character in AllFightingCharacters:
+                    if Character.CharacterSprite.hits(x,y):
+                        Character.Clicked = True
+                        print("Clicked fighting: " + Character.name)
+                    else:
+                        if ClickedBackground:
+                            Character.Clicked = False
     #------------------------------------------------------------------------------------
         elif app.InMainMenu:
             if app.Menu == "CharacterSelect":
@@ -164,6 +212,7 @@ def onMousePress(x,y):
                                 app.ChosenCharacter = SavedButtom.ConnectedCharacter
                                 DisplayCharacterEdit(app.ChosenCharacter)
                                 app.Menu = "EditCharacter"
+                                app.ChosenCharacter.OverrideCard.visible = True
                             
                             
             elif app.Menu == "MainMenu":
@@ -181,9 +230,11 @@ def onMousePress(x,y):
                         elif Button.Type == "ProgressionTree":
                             app.Menu = "ProgressionTree"
                             DisplayProgressionTree()
-                        elif Button.Type == "EnlightenmentTree":
-                            app.Menu = "EnlightenmentTree"
-                            DisplayEnlightenmentTree()
+                        elif Button.Type == "FloorSelect":
+                            app.Menu = "FloorSelect"
+                            DisplayFloorSelect()
+                        elif Button.Type == "Instructions":
+                            app.Menu = "Instructions"
                             print("WIP LOL")
                             
             elif app.Menu == "ProgressionTree":
@@ -196,19 +247,46 @@ def onMousePress(x,y):
                             app.CurrentBattle = Stage
                             app.CurrentFight = Stage.ListOfFights[int(Icon.Text.value) - 1]
                             
-                            StartABattle(Stage.ListOfFights[int(Icon.Text.value) - 1])
+                            StartBattle(Stage.ListOfFights[int(Icon.Text.value) - 1])
                             
-            elif app.Menu == "EnlightenmentTree":
-                #stages dont actually exist these are all battles in terms of creation labeling
-                for Stage in app.EnlightenmentStages:
-                    for Fight in Stage.ListOfFights:
-                        Icon = Fight.FightIcon
-                        if Icon.visible == True and Icon.hits(x,y):
-                            print("Starting battle!")
-                            app.CurrentBattle = Stage
-                            app.CurrentFight = Stage.ListOfFights[int(Icon.Text.value) - 1]
-                            
-                            StartABattle(Stage.ListOfFights[int(Icon.Text.value) - 1])
+            elif app.Menu == "FloorSelect":
+                for Button in app.TemporaryButtons:
+                    if Button.hits(x,y):
+                        if Button.Type != "locked":
+                            SavedButton = Button
+                            DeleteTempButtons()
+
+                            if SavedButton.Type == "Abnormalities":
+                                DisplayFloorAbnormalities(SavedButton.ConnectedFloor)
+                                app.Menu = "Abnormalities"
+                                
+                            elif SavedButton.Type == "Battles":
+                                DisplayFloorBattles(SavedButton.ConnectedFloor)
+                                app.Menu = "EnlightenmentBattles"
+                                
+                            elif SavedButton.Type == "SetActive":
+                                app.CurrentFloor = SavedButton.ConnectedFloor
+                                app.CharactersUnlocked = app.CurrentFloor.CharactersUnlocked
+                                app.CurrentEmotionLevelCap = app.CurrentFloor.CurrentEmotionLevelCap
+
+                                DisplayFloorSelect()
+                                
+                                
+
+            elif app.Menu == "EnlightenmentBattles":
+                
+                for Floor in app.Floors:
+                    for Stage in Floor.EnlightenmentStages:
+                        for Fight in Stage.ListOfFights: #again realisitcally only 1 but idk I am lazy
+                            Icon = Fight.FightIcon
+                            if Icon.visible == True and Icon.hits(x,y):
+                                print("Starting battle!")
+                                app.CurrentFloor = Floor
+                                app.CurrentBattle = Stage
+                                app.CurrentFight = Stage.ListOfFights[int(Icon.Text.value) - 1]
+                                
+                                StartBattle(Stage.ListOfFights[int(Icon.Text.value) - 1])
+
                             
             elif app.Menu == "EditDeck":
                 for DisplayCard in AllDisplayCards:
@@ -260,6 +338,7 @@ def onMousePress(x,y):
                         Card.visible = False
                     app.DeckBuilderYDisp = 0
                     DeleteTempButtons()
+                    app.ChosenCharacter.OverrideCard.visible = False
                     print("Xed out of character edit")
                     DisplayCharacterSelect()
                 elif app.Menu == "CharacterSelect":
@@ -275,15 +354,33 @@ def onMousePress(x,y):
                         Symbol.visible = False
                     DeleteTempButtons()
                     DisplayMainMenu()
-                elif app.Menu == "EnlightenmentTree":
+                    
+                elif app.Menu == "FloorSelect":
                     app.Menu = "MainMenu"
-                    for Stage in app.EnlightenmentStages:
-                        Stage.visible = False
-                    for Symbol in app.EnlightenmentStageSymbols:
-                        Symbol.visible = False
                     DeleteTempButtons()
                     DisplayMainMenu()
-                elif app.Menu == "EnlightenmentTree":
+                
+                elif app.Menu == "Instructions":
+                    app.Menu = "MainMenu"
+                    DeleteTempButtons()
+                    DisplayMainMenu()
+                    
+                elif app.Menu == "EnlightenmentBattles":
+                    app.Menu = "FloorSelect"
+                    DeleteTempButtons()
+                    for Floor in app.Floors:
+                        for Symbol in Floor.EnlightenmentStageSymbols:
+                            Symbol.visible = False
+                        for Stage in Floor.EnlightenmentStages:
+                            Stage.visible = False
+                    DisplayFloorSelect()
+                    
+                elif app.Menu == "Abnormalities":
+                    app.Menu = "FloorSelect"
+                    DeleteTempButtons()
+                    DisplayFloorSelect()
+                    
+                elif app.Menu == "FloorSelect":
                     app.Menu = "MainMenu"
                     DeleteTempButtons()
                     DisplayMainMenu()
@@ -325,16 +422,17 @@ def onMouseMove(x,y):
                         Icon.border = "orange"
                         Icon.Text.fill = "orange"
                         
-        elif app.Menu == "EnlightenmentTree":
-            for Stage in app.EnlightenmentStages:
-                for Fight in Stage.ListOfFights:
-                    Icon = Fight.FightIcon
-                    if Icon.hits(x,y):
-                        Icon.border = "lightblue"
-                        Icon.Text.fill = "lightblue"
-                    else:
-                        Icon.border = "orange"
-                        Icon.Text.fill = "orange"
+        elif app.Menu == "EnlightenmentBattles":
+            for Floor in app.Floors:
+                for Stage in Floor.EnlightenmentStages:
+                    for Fight in Stage.ListOfFights: #again realisitcally only 1 but idk I am lazy
+                        Icon = Fight.FightIcon
+                        if Icon.hits(x,y):
+                            Icon.border = "lightblue"
+                            Icon.Text.fill = "lightblue"
+                        else:
+                            Icon.border = "orange"
+                            Icon.Text.fill = "orange"
                         
         elif app.Menu == "MainMenu":
             for Button in app.TemporaryButtons:
@@ -375,15 +473,14 @@ def onKeyPress(key):
         if key == "escape":
             for Die in PlayerSpeedDice:
                 UntargetSpeedDie(Die)
-        if key == "space":
+        elif key == "space":
             #if app.PlayerConfirmStage == 0 or app.PlayerConfirmStage == 1 or app.PlayerConfirmStage == 2:
             app.PlayerConfirm = True
             pass
-        if key == "r" and app.PlayerConfirmStage == 1:
+        elif key == "r" and app.PlayerConfirmStage == 1:
             for Character in AllFightingCharacters:
                 if Character.ControlledByPlayer and not Character.Staggered:
                     CharacterRandomTarget(Character)
-        
         
     elif app.InMainMenu:
         if app.Menu == "CharacterSelect" or app.Menu == "EditCharacter":
@@ -399,12 +496,30 @@ def onKeyPress(key):
                     
         if app.Menu == "EditDeck" or app.Menu == "EditCharacter":
             if key == "up":
-                MoveDisplayCards(50)
+                MoveDisplayCards(10)
                 
-            if key == "down":
-                MoveDisplayCards(-50)
+            elif key == "down":
+                MoveDisplayCards(-10)
         pass
     
+def onKeyHold(keys):
+    if app.Menu == "EditDeck" or app.Menu == "EditCharacter":
+        for key in keys:
+            if key == "up":
+                MoveDisplayCards(10)
+                
+            elif key == "down":
+                MoveDisplayCards(-10)
+                
+    elif app.Menu == "Abnormalities":
+        for key in keys:
+            if key == "right":
+                MoveDisplayCards(10)
+                
+            elif key == "left":
+                MoveDisplayCards(-10)
+    
+
 #def onMouseRelease(x,y):
     #app.SinglePressLock = False
         
@@ -506,7 +621,8 @@ def onStep():
                 
         elif app.PlayerConfirmStage == 3:
             ResetAllCharacterPositions()
-            app.PlayerConfirmStage = 0
+            if app.PlayerConfirmStage != 7:
+                app.PlayerConfirmStage = 0
             
         #app.PausedForClash = False
         if (app.AutoProgressStagesForTesting or app.PlayerConfirmStage == 0) and not app.PlayerConfirm and app.PlayerConfirmStage != 10:
@@ -517,7 +633,9 @@ def onStep():
             app.AutoProgressStageTimer = 10
             if app.PlayerConfirmStage == 0:
                 MoveToPageSelect()
-                app.PlayerConfirmStage = 1
+                print("confirm stage is " + str(app.PlayerConfirmStage))
+                if app.PlayerConfirmStage != 7: #caused problems of overriding assigning abno page
+                    app.PlayerConfirmStage = 1
                 app.PlayerConfirm = False
                 if app.AutoProgressStagesForTesting:
                     onKeyPress("r")
@@ -587,143 +705,141 @@ def DisplayProgressionTree():
                 Symbol.toFront()
         index += 1
         
-def DisplayEnlightenmentTree():
-    
-    print("Displaying Enlightenment tree")
+def DisplayFloorBattles(Floor):
+    print("Displaying floor progression tree")
     StartY = 300
     index = 1
-    
-    for Stage in app.EnlightenmentStages:
-        if app.EnlightenmentUnlocked >= index:
+    #Floor.EnlightenmentUnlocked = 1 #testing
+    if Floor.EnlightenmentUnlocked == 0:
+        print("not high enough unlock yet")
+        NothingHere = Rect(50,100,300,200,fill = "lightBlue",border = "black")
+        NothingHere.Text = Label("Not enough of the main story completed for unlock",NothingHere.centerX,NothingHere.centerY)
+        NothingHere.ConnectedFloor = Floor
+        NothingHere.Type = "Locked"
+        app.TemporaryButtons.append(NothingHere)
+    else:
+        for Stage in Floor.EnlightenmentStages:
+            if Floor.EnlightenmentUnlocked >= index:
+                
+                Stage.visible = True
+                Stage.centerY = StartY
+                Stage.centerX = 200
+                Stage.visible = True
+                StartY -= 100 
+                
+                subindex = 1
+                for Fight in Stage.ListOfFights:
+                    if Stage.FightsUnlocked >= subindex:
+                        Fight.FightIcon.visible = True
+                        Fight.FightIcon.Text.visible = True
+                    else:
+                        Fight.FightIcon.visible = False
+                        Fight.FightIcon.Text.visible = False
+                    
+                    subindex += 1
+                    
+                if len(Floor.EnlightenmentStageSymbols) >= index:
+                    Symbol = Floor.EnlightenmentStageSymbols[index - 1]
+                    Symbol.visible = True
+                    Symbol.width = 60
+                    Symbol.height = 40
+                    Symbol.left = Stage.left + 5
+                    Symbol.centerY = StartY + 100
+                    Symbol.toFront()
+            index += 1
             
-            Stage.visible = True
-            Stage.centerY = StartY
-            Stage.centerX = 200
-            Stage.visible = True
-            StartY -= 100 
-            
-            subindex = 1
-            for Fight in Stage.ListOfFights:
-                if Stage.FightsUnlocked >= subindex:
-                    Fight.FightIcon.visible = True
-                    Fight.FightIcon.Text.visible = True
+def DisplayFloorAbnormalities(Floor):
+    app.DisplayedFloor = Floor
+    if len(Floor.EmotionPayoffs[0]) == 0:
+        print("not high enough unlock yet")
+        NothingHere = Rect(50,100,300,200,fill = "lightBlue",border = "black")
+        NothingHere.Text = Label("Complete 1 Floor Battle on this floor to unlock",NothingHere.centerX,NothingHere.centerY)
+        NothingHere.ConnectedFloor = Floor
+        NothingHere.Type = "Locked"
+        app.TemporaryButtons.append(NothingHere)
+    else:
+        
+        PageWidth = 400 * app.XScreenDialation / 3
+        StartX = 0 + app.DeckBuilderYDisp
+        Index = 0
+        for EmotionLevel in Floor.EmotionPayoffs:
+            Index += 1
+            print("new emotion level")
+            for AbnoPage in EmotionLevel:
+                print("ordering payoff")
+                Page = Group()
+                Outline = Rect(StartX,50 * app.YScreenDialation,PageWidth,300 * app.YScreenDialation)
+                if AbnoPage.Positive:
+                    Outline.fill = "green"
+                    Outline.border = "darkGreen"
                 else:
-                    Fight.FightIcon.visible = False
-                    Fight.FightIcon.Text.visible = False
-                
-                subindex += 1
-                
-            if len(app.EnlightenmentStageSymbols) >= index:
-                
-                Symbol = app.EnlightenmentStageSymbols[index - 1]
-                Symbol.visible = True
-                Symbol.width = 60
-                Symbol.height = 40
-                Symbol.left = Stage.left + 5
-                Symbol.centerY = StartY + 100
-                Symbol.toFront()
-        index += 1
-    
+                    Outline.fill = "red"
+                    Outline.border = "darkRed"
+                Outline.borderWidth = 8
+                Page.add(Outline)
+                Title = Label(AbnoPage.name,Outline.centerX,100 * app.YScreenDialation,size = 20 * app.XScreenDialation)
+                Page.add(Title)
+                TargetTitle = Label("Idk Target",Outline.centerX,130 * app.YScreenDialation,size = 18 * app.XScreenDialation)
+                if AbnoPage.SingleTarget:
+                    TargetTitle.value = "Single target"
+                else:
+                    TargetTitle.value = "World Effect"
+                LevelTitle = Label("Level: " + str(Index),Outline.centerX,145 * app.YScreenDialation,size = 18 * app.XScreenDialation)
+                Page.Text = Group(Title,TargetTitle,LevelTitle)
+                PartitionedText = CardPartition(AbnoPage.Description)
+                StartY = 160 * app.YScreenDialation
+                for Line in PartitionedText:
+                    #Textline = Label(Line,Outline.centerX,StartY)
+                    Line.size = 16 * app.YScreenDialation
+                    Line.centerX = Outline.centerX
+                    Line.centerY = StartY
+                    StartY += 12 * app.YScreenDialation
+                    Page.add(Line)
+                    Page.Text.add(Line)
+                Page.Type = "Page"
+                app.TemporaryButtons.append(Page)
+                StartX += PageWidth
 
-def StartABattle(Fight):
-    #hides all the menuing
-    XButton.visible = False
-    print("Let it begin!")
-    for Stage in app.StoryStages + app.EnlightenmentStages:
-        Stage.visible = False
-    for Symbol in app.StageSymbols + app.EnlightenmentStageSymbols:
-        Symbol.visible = False
-    #app.AutoProgressStagesForTesting = False
-    app.InAFight = True
-    app.InMainMenu = False
-    app.PlayerConfirmStage = 0
-    for Character in Fight.ListOfParts[app.CurrentPart].ListOfFighters:
-        print("Character added " + Character.name)
-        Character.Health = Character.MaxHealth
-        Character.Stagger = Character.MaxStagger
-        UpdateBars(Character)
-        AllFightingCharacters.append(Character)
-        for Die in Character.SpeedDice:
-            #print("die added")
-            EnemySpeedDice.append(Die)
-            
-    index = 0        
-    for WhyThisUseless in range(app.CharactersUnlocked):
-        Character = PlayerCharacters[index]
-        if len(Character.Library) < 9:
-            SupplementLibrary(Character)
-        Character.Health = Character.MaxHealth
-        Character.Stagger = Character.MaxStagger
-        UpdateBars(Character)
-        AllFightingCharacters.append(Character)
-        for Die in Character.SpeedDice:
-            PlayerSpeedDice.append(Die)
-        index += 1
-            
-    for Character in AllFightingCharacters:
-        Character.visible = True
-        if Character.ControlledByPlayer:
-            Character.NameBoard.Text.visible = False
-            Character.NameBoard.visible = False
-        
-        Character.Health = Character.MaxHealth
-        Character.Stagger = Character.MaxStagger
-
-        Character.Staggered = False
-        Character.ClearStaggered = False
-        Character.Light = Character.MaxLight
-        ShuffleList(Character.Library)
-        for drawing in range(5):
-            DrawCard(Character)
-            
-    ResetAllCharacterPositions()
-
-def SupplementLibrary(Character):
-    TargetCard = AllDisplayCards[0]
-    while len(Character.Library) < 9:
-        
-        #check for 3 of a kind
-        
-        duplicates = 0
-        for Card in Character.Library:
-            if Card.name == TargetCard.name:
-                duplicates += 1
-        if duplicates < 3:
-            CopyCard(TargetCard, Character.Library)
-            print("added card to library!")
-        else:
-            if TargetCard == AllDisplayCards[0]:
-                TargetCard = AllDisplayCards[1]
-            else:
-                TargetCard = AllDisplayCards[2]
 
 def DisplayMainMenu():
     
     LeftSide = 50
-    ProgressionTreeButton = Rect(LeftSide,25,400 - LeftSide * 2,100,fill = "yellow",border = "black")
+    ProgressionTreeButton = Rect(LeftSide,25,400 - LeftSide * 2,75,fill = "yellow",border = "black")
     ProgressionTreeButton.Type = "ProgressionTree"
     ProgressionTreeButton.Text = Label("Story Mode",ProgressionTreeButton.centerX,ProgressionTreeButton.centerY)
+    app.TemporaryButtons.append(ProgressionTreeButton)
     
-    CharacterSelectButton = Rect(LeftSide,150,400 - LeftSide * 2,100,fill = "lightgreen",border = "black")
+    CharacterSelectButton = Rect(LeftSide,125,400 - LeftSide * 2,75,fill = "lightgreen",border = "black")
     CharacterSelectButton.Type = "CharacterSelect"
     CharacterSelectButton.Text = Label("Edit Characters",CharacterSelectButton.centerX,CharacterSelectButton.centerY)
+    app.TemporaryButtons.append(CharacterSelectButton)
     
-    UnlockPathButton = Rect(LeftSide,275,400 - LeftSide * 2,100,fill = "red",border = "black")
-    UnlockPathButton.Type = "EnlightenmentTree"
-    UnlockPathButton.Text = Label("Enlightenment Tree",UnlockPathButton.centerX,UnlockPathButton.centerY)
+    UnlockPathButton = Rect(LeftSide,225,400 - LeftSide * 2,75,fill = "red",border = "black")
+    UnlockPathButton.Type = "FloorSelect"
+    UnlockPathButton.Text = Label("Floor Select",UnlockPathButton.centerX,UnlockPathButton.centerY)
+    app.TemporaryButtons.append(UnlockPathButton)
+    
+    InstructionButton = Rect(LeftSide,325,400 - LeftSide * 2,50,fill = "LightGrey",border = "black")
+    InstructionButton.Type = "Instructions"
+    InstructionButton.Text = Label("Instructions",InstructionButton.centerX,InstructionButton.centerY)
+    app.TemporaryButtons.append(InstructionButton)
     
     #XButton.toFront()
     XButton.visible = False
     
-    app.TemporaryButtons.append(ProgressionTreeButton)
-    app.TemporaryButtons.append(CharacterSelectButton)
-    app.TemporaryButtons.append(UnlockPathButton)
     pass
 
 def HideCharacterSelect():
     for Character in PlayerCharacters:
         Character.visible = False
         Character.AdditionalInfoBoard.visible = False
+        
+def DeleteTempButtons():
+    while len(app.TemporaryButtons) > 0:
+        if app.TemporaryButtons[0].Type != "locked" and app.TemporaryButtons[0].Type != "Attribution Slot":
+            app.TemporaryButtons[0].Text.visible = False
+        app.TemporaryButtons[0].visible = False
+        app.TemporaryButtons.remove(app.TemporaryButtons[0])
 
 
 def DisplayCharacterSelect():
@@ -776,12 +892,58 @@ def DisplayCharacterSelect():
         StartX += 83
         index += 1
         
-def DeleteTempButtons():
-    while len(app.TemporaryButtons) > 0:
-        if app.TemporaryButtons[0].Type != "locked" and app.TemporaryButtons[0].Type != "Attribution Slot":
-            app.TemporaryButtons[0].Text.visible = False
-        app.TemporaryButtons[0].visible = False
-        app.TemporaryButtons.remove(app.TemporaryButtons[0])
+def DisplayFloorSelect():
+    
+    print("Displaying Enlightenment tree")
+    StartY = 0
+
+    for Floor in app.Floors: #the larger overarcing "stage" in progression
+        if Floor.Unlocked:
+            print("unlocked Stage")
+            BattleContainer = Rect(-80,-20,100 + 5 * 50,70,fill = "black", border = "orange")
+            BattleContainer.top = StartY
+            StartY = BattleContainer.bottom + 2
+            BattleContainer.centerX = 220
+            BattleContainer.Type = "locked"
+            app.TemporaryButtons.append(BattleContainer)
+            
+            SetActiveButton = Rect(0,0,40,40,fill = "grey",border = "black")
+            SetActiveButton.centerY = BattleContainer.centerY
+            SetActiveButton.centerX = BattleContainer.left + 40
+            SetActiveButton.ConnectedFloor = Floor
+            SetActiveButton.Type = "SetActive"
+            SetActiveButton.Text = Label("",SetActiveButton.centerX,SetActiveButton.centerY)
+            if app.CurrentFloor == Floor:
+                SetActiveButton.Text.value = "X"
+            else:
+                SetActiveButton.Text.value = ""
+
+            EnlightenmentBattlesButton = Rect(0,0,140,40,fill = "lightGreen",border = "black")
+            EnlightenmentBattlesButton.ConnectedFloor = Floor
+            EnlightenmentBattlesButton.Type = "Battles"
+            EnlightenmentBattlesButton.centerY = BattleContainer.centerY
+            EnlightenmentBattlesButton.left = BattleContainer.left + 60
+            EnlightenmentBattlesButton.Text = Label("Floor Battles",EnlightenmentBattlesButton.centerX,EnlightenmentBattlesButton.centerY)
+            #also need Team Abnos and Active select button
+            TeamAbnormalitiesButton = Rect(0,0,140,40,fill = "lightBlue",border = "black")
+            TeamAbnormalitiesButton.centerY = BattleContainer.centerY
+            TeamAbnormalitiesButton.left = BattleContainer.left + 200
+            TeamAbnormalitiesButton.Text = Label("Floor Buffs",TeamAbnormalitiesButton.centerX,TeamAbnormalitiesButton.centerY)
+            TeamAbnormalitiesButton.ConnectedFloor = Floor
+            TeamAbnormalitiesButton.Type = "Abnormalities"
+            app.TemporaryButtons.append(EnlightenmentBattlesButton)
+            app.TemporaryButtons.append(TeamAbnormalitiesButton)
+            app.TemporaryButtons.append(SetActiveButton)
+            
+        else:
+            print("locked Stage")
+            LockBox = Rect(0,0,400,400/7,fill = "grey",border = "black")
+            LockBox.top = StartY
+            StartY = LockBox.bottom + 2
+            LockBox.left = 0
+            LockBox.Type = "locked"
+            app.TemporaryButtons.append(LockBox)
+        
 
         
 def DisplayCharacterEdit(Character):
@@ -789,10 +951,11 @@ def DisplayCharacterEdit(Character):
     StartY = 65 + app.DeckBuilderYDisp
     print(str(len(AllDisplayCards)) + " unique cards in total")
     index = 1
+    FixUpCharacter(Character)
+    HideCharacterUI(Character)
     Character.visible = True
     Character.centerX = 55
     Character.centerY = 270
-    HideCharacterUI(Character)
     
     Character.AdditionalInfoBoard.centerX = 55
     Character.AdditionalInfoBoard.centerY = 360
@@ -868,26 +1031,6 @@ def CheckSortUnused():
             app.UnusedCharacterCards.append(EscroList[0])
             EscroList.remove(EscroList[0])
             
-
-    
-        
-def HideEditDeck():
-    DeckbuildingBack.visible = False
-    for Character in PlayerCharacters:
-        for Card in Character.Library:
-            Card.visible = False
-    for Card in AllDisplayCards:
-        Card.visible = False
-        
-def MoveDisplayCards(YDisp):
-    print("moving editor +" + str(YDisp))
-    app.DeckBuilderYDisp += YDisp
-    if app.DeckBuilderYDisp > 0:
-        app.DeckBuilderYDisp = 0
-    if app.Menu == "EditDeck":
-        DisplayDeckBuilder()
-    elif app.Menu == "EditCharacter":
-        DisplayCharacterEdit(app.ChosenCharacter)
             
 def DisplayLibrary(Character):
     DeckbuildingBack.visible = True
@@ -921,6 +1064,20 @@ def SortLibrary(Library):
                 pass
         Cost += 1
         
+def MoveDisplayCards(YDisp):
+    print("moving editor +" + str(YDisp))
+    app.DeckBuilderYDisp += YDisp
+    if app.DeckBuilderYDisp > 0:
+        app.DeckBuilderYDisp = 0
+    if app.Menu == "EditDeck":
+        DisplayDeckBuilder()
+    elif app.Menu == "EditCharacter":
+        DisplayCharacterEdit(app.ChosenCharacter)
+    elif app.Menu == "Abnormalities":
+        DeleteTempButtons()
+        DisplayFloorAbnormalities(app.DisplayedFloor)
+        
+        
 def DisplayDeckBuilder():
     #Sorts the all cards list by cost
     StartX = 240
@@ -939,6 +1096,14 @@ def DisplayDeckBuilder():
                 StartY += 125
         index += 1
         
+def HideEditDeck():
+    DeckbuildingBack.visible = False
+    for Character in PlayerCharacters:
+        for Card in Character.Library:
+            Card.visible = False
+    for Card in AllDisplayCards:
+        Card.visible = False
+        
 def ContinueAfterFight():
     print("Moving to main menu")
     app.BlackScreen.visible = False
@@ -951,28 +1116,102 @@ def ContinueAfterFight():
     for Die in RelevantDice:
         RemoveClashLine(Die)
         
-def FightEnd(Victory):
-    
-    for Character in AllCharacters:
-        Character.visible = False
-        ClearExtraDice(Character)
+def StartBattle(Fight):
+    #hides all the menuing
+    XButton.visible = False
+    print("Let it begin!")
+    #for Floor in app.Floors:
+    for Stage in app.StoryStages:# + app.EnlightenmentStages:
+        Stage.visible = False
+        
+    for Floor in app.Floors:
+        for Symbol in Floor.EnlightenmentStageSymbols:
+            Symbol.visible = False
+        for Stage in Floor.EnlightenmentStages:
+            Stage.visible = False
+            
+    for Symbol in app.StageSymbols:
+        Symbol.visible = False
+    #app.AutoProgressStagesForTesting = False
+    app.InAFight = True
+    app.InMainMenu = False
+    app.PlayerConfirmStage = 0
+    for Character in Fight.ListOfParts[app.CurrentPart].ListOfFighters: #adds all enemies
+        print("Character added " + Character.name)
+        Character.Health = Character.MaxHealth
+        Character.Stagger = Character.MaxStagger
+        UpdateBars(Character)
+        AllFightingCharacters.append(Character)
         for Die in Character.SpeedDice:
-            if Die.TargettingLine != None:
-                Die.TargettingLine.visible = False
-                Die.TargettingLine = None
-                
-        for Effect in Character.StatusEffects + Character.NextTurnStatusEffects:
-            Effect.visible = False
-            Character.remove(Effect)
+            #print("die added")
+            EnemySpeedDice.append(Die)
+            
+    index = 0        
+    for WhyThisUseless in range(app.CharactersUnlocked): #adds all player characters
+        Character = PlayerCharacters[index]
+        if len(Character.Library) < 9:
+            SupplementLibrary(Character)
+        Character.Health = Character.MaxHealth
+        Character.Stagger = Character.MaxStagger
+        UpdateBars(Character)
+        AllFightingCharacters.append(Character)
+        for Die in Character.SpeedDice:
+            PlayerSpeedDice.append(Die)
+        index += 1
+            
+    for Character in AllFightingCharacters:
+        Character.visible = True
         
-        Character.StatusEffects.clear()
-        Character.NextTurnStatusEffects.clear()
+        for Passive in Character.AttributedPassives:
+            AddPassiveEffect(Character,Passive)
         
-    #for Character in DeadCharacters:
-        #for Die in Character.SpeedDice:
+        if Character.ControlledByPlayer:
+            Character.NameBoard.Text.visible = False
+            Character.NameBoard.visible = False
+        
+        Character.Health = Character.MaxHealth
+        Character.Stagger = Character.MaxStagger
+
+        Character.Staggered = False
+        Character.ClearStaggered = False
+        Character.Light = Character.MaxLight
+        ShuffleList(Character.Library)
+        for drawing in range(4):
+            DrawCard(Character)
+            
+    ResetAllCharacterPositions()
+
+def SupplementLibrary(Character):
+    TargetCard = AllDisplayCards[0]
+    while len(Character.Library) < 9:
+        
+        #check for 3 of a kind
+        
+        duplicates = 0
+        for Card in Character.Library:
+            if Card.name == TargetCard.name:
+                duplicates += 1
+        if duplicates < 3:
+            CopyCard(TargetCard, Character.Library)
+            print("added card to library!")
+        else:
+            if TargetCard == AllDisplayCards[0]:
+                TargetCard = AllDisplayCards[1]
+            else:
+                TargetCard = AllDisplayCards[2]
+        
+def FightEnd(Victory):
+    print("ending fight")
+    ResetAllCharacterPositions()
     
+    
+        
     if len(app.CurrentFight.ListOfParts) - 1 <= app.CurrentPart or not Victory:
         print("fight completed")
+        
+        for Character in AllCharacters:
+            DissapearCharacter(Character, True)
+        
         app.CurrentPart = 0
         AllFightingCharacters.clear()
         EnemySpeedDice.clear()
@@ -980,10 +1219,25 @@ def FightEnd(Victory):
         DeadCharacters.clear()
         DeadSpeedDice.clear()
         
+        for Character in AllCharacters:
+            HeldLevel = Character.EmotionLevel #resets light
+            for Count in range(HeldLevel):
+                print("light removed from " + Character.name)
+                RemoveLight(Character)
+                
+            Character.EmotionCoins.clear()
+            Character.BankedEmotionCoins.clear()
+            #print(Character.EmotionLevel)
+            ResetEmotionBar(Character)
+                
+            if len(Character.LightSprites) > Character.MaxLight:
+                print("overmaxxing the light! this is the problem")
+        
         app.BlackScreen.visible = True
         app.BlackScreen.toFront()
         app.ContinueText.visible = True
         app.ContinueText.toFront()
+        app.CurrentTeamEmotionLevel = 0
         if Victory:
             app.WinText.visible = True
             app.WinText.toFront()
@@ -998,13 +1252,20 @@ def FightEnd(Victory):
                             #app.CurrentBattle.FightsUnlocked = 1
                             app.StagesUnlocked += 1
             
-            for Card in app.CurrentFight.RewardCards:
-                AllDisplayCards.append(Card)
-            app.CurrentFight.RewardCards.clear()
-            for CharacterCard in app.CurrentFight.RewardCharacters:
-                app.UnusedCharacterCards.append(CharacterCard)
-                CharacterCard.SortNumber = len(app.UnusedCharacterCards)
-            app.CurrentFight.RewardCharacters.clear()
+            if app.CurrentBattle.IsSpecialStage:
+                print("adding abno rewards to floor")
+                for Card in app.CurrentFight.RewardCards:
+                    app.CurrentFloor.EmotionPayoffs[Card.Level - 1].append(Card)
+                    
+                app.CurrentFight.RewardCards.clear()
+            else:
+                for Card in app.CurrentFight.RewardCards:
+                    AllDisplayCards.append(Card)
+                app.CurrentFight.RewardCards.clear()
+                for CharacterCard in app.CurrentFight.RewardCharacters:
+                    app.UnusedCharacterCards.append(CharacterCard)
+                    CharacterCard.SortNumber = len(app.UnusedCharacterCards)
+                app.CurrentFight.RewardCharacters.clear()
                 
         else:
             app.GamoverText.visible = True
@@ -1014,9 +1275,18 @@ def FightEnd(Victory):
     
     else:
         print("next part lol")
+        
+        for Character in AllCharacters:
+            DissapearCharacter(Character, False)
+        
         app.CurrentPart += 1
         print("app.Currentpart = " + str(app.CurrentPart))
         print("Compared against " + str(len(app.CurrentFight.ListOfParts) - 1))
+        for Character in AllFightingCharacters:
+            CheckForEmotionLevelup(Character)
+            Character.EmotionCoins.clear()
+            ResetEmotionBar(Character)
+            
         AllFightingCharacters.clear()
         EnemySpeedDice.clear()
         PlayerSpeedDice.clear()
@@ -1038,6 +1308,7 @@ def FightEnd(Victory):
         app.FadingParticles.append(Particle)
         
         app.PlayerConfirmStage = 0
+        #adds next enemies
         for Character in app.CurrentFight.ListOfParts[app.CurrentPart].ListOfFighters:
             print("Character added " + Character.name)
             Character.Health = Character.MaxHealth
@@ -1047,7 +1318,8 @@ def FightEnd(Victory):
             for Die in Character.SpeedDice:
                 EnemySpeedDice.append(Die)
                 
-        index = 0        
+        index = 0     
+        #readds the players
         for Count in range(app.CharactersUnlocked):
             Character = PlayerCharacters[index]
             if len(Character.Library) < 9:
@@ -1059,6 +1331,7 @@ def FightEnd(Victory):
                 PlayerSpeedDice.append(Die)
             index += 1
                 
+        #runs some of fight startup
         for Character in AllFightingCharacters:
             Character.visible = True
             if Character.ControlledByPlayer:
@@ -1073,15 +1346,50 @@ def FightEnd(Victory):
                 
         ResetAllCharacterPositions()
         
+def DissapearCharacter(Character,RemovePassives):
+    Character.visible = False
+    ClearExtraDice(Character)
+    for Die in Character.SpeedDice:
+        if Die.TargettingLine != None:
+            Die.TargettingLine.visible = False
+            Die.TargettingLine = None
+            
+    RemovalList = []
+    for Effect in Character.StatusEffects:
+        if Effect.BaseEffect or RemovePassives: #checks for both of this is an always remove base effect, or we are removing all
+            RemovalList.append(Effect)
+            Effect.visible = False
+            print("effect removed from " + Character.name)
+            Character.remove(Effect)
+    
+    #Character.StatusEffects.clear()
+    for Effect in RemovalList:
+        Character.StatusEffects.remove(Effect)
+    
+    for Effect in Character.NextTurnStatusEffects: #these are always base
+        Effect.visible = False
+        print("effect removed from " + Character.name)
+        Character.remove(Effect)
+        
+    Character.NextTurnStatusEffects.clear()
+    
+    Character.EmotionBar.visible = False
+    Character.AdditionalInfoBoard.visible = False
     
 def CheckForSpecialStageEndEvents(StageNum,FightNum,IsSpecial):
     if not IsSpecial:
         if StageNum == 2 and FightNum == 2:
-            if app.EnlightenmentUnlocked < 1:
-                app.EnlightenmentUnlocked = 1
-    else:        
-        if StageNum == 1 and app.CharactersUnlocked < 2:
-            app.CharactersUnlocked = 2
+            if app.Floors[0].EnlightenmentUnlocked < 1:
+                app.Floors[0].EnlightenmentUnlocked = 1
+    else:    #this is an elightenment stage    
+        print("stage number is " + str(StageNum))
+        if StageNum == 1 and app.CurrentFloor.CharactersUnlocked < 2:
+            print("trying to get characters unlocked to 2")
+            app.CurrentFloor.CharactersUnlocked = 2
+            app.CurrentFloor.CurrentEmotionLevelCap = 2
+            app.CharactersUnlocked = app.CurrentFloor.CharactersUnlocked
+            app.CurrentEmotionLevelCap = app.CurrentFloor.CurrentEmotionLevelCap
+            
 #------------------------------------------------------------------------------------------
 #Updates and fixes for fight
             
@@ -1170,28 +1478,30 @@ def FixupCard(Card):
         Die.TypeSprite.toFront()
 
 def FixUpCharacter(Character):
-    
-    
+    print("fixing up " + Character.name)
+    X = Character.CharacterSprite.centerX
+    Y = Character.CharacterSprite.centerY
     if len(Character.SpeedDice) > 1:
-        StartX = Character.CharacterSprite.centerX - ((40 * len(Character.SpeedDice)) / 3) 
+        StartX = X - ((40 * len(Character.SpeedDice)) / 3) 
     else:
-        StartX = Character.CharacterSprite.centerX
+        StartX = X
     
     if Character.ControlledByPlayer:
-        Character.NameBoard.centerY = Character.CharacterSprite.centerY - 50
+        Character.NameBoard.centerY = Y - 50
         Character.NameBoard.centerX = StartX
         Character.NameBoard.Text.centerY = Character.NameBoard.centerY
         Character.NameBoard.Text.centerX = StartX
     
     for Die in Character.SpeedDice:
         Die.ConnectedSprite.centerX = StartX #-20
-        Die.ConnectedSprite.centerY = Character.CharacterSprite.centerY - 50
+        Die.ConnectedSprite.centerY = Y - 50
         
         Die.ConnectedText.centerX = Die.ConnectedSprite.centerX
         Die.ConnectedText.centerY = Die.ConnectedSprite.centerY
         
         StartX += 40
 
+    Character.EmotionBar.EmotionLevelText.value = Character.EmotionLevel
 
 
 def DisplayHand(Character, ThisDie):
@@ -1200,6 +1510,7 @@ def DisplayHand(Character, ThisDie):
         for Card in Character.Hand:
             #print("displaying " + str(len(app.DisplayedHandCards)))
             Card.visible = True
+            Card.toFront()
             app.DisplayedHandCards.append(Card)
             ResethandCardPositions()
     else:
@@ -1254,38 +1565,211 @@ def CreateStoryStages():
     CreateRatsStage()
     CreateYunStage()
     CreateBrotherStage()
+    CreateHookStage()
+    #CreateChefStage()
+    
     CreateBloodBathStage()
     
     CreateStorySymbols()
 
 def CreateStorySymbols():
     
-    Rat = Polygon(77,154,84,141,119,126,153,106,157,84,177,74,194,85,193,85,226,139,244,162,246,205,209,226,177,228,141,225,179,213,157,212,154,216,177,160,157,178,135,208,116,217,129,166,107,207,105,170,79,153,111,147,105,163,81,150)
-    RatEye = Circle(137,140,10,fill = "red")
-    RatNose = Polygon(77,154,84,141,105,170,fill="pink")
-    RatTail = Group(Line(245,199,288,163),Line(295,92,288,163),Line(295,92,271,72),Line(247,82,271,72),Line(247,82,247,102),Line(271,106,247,102),Line(271,106,272,89),Line(259,86,272,89))
-    FullRat = Group(Rat,RatTail)
-    FullRat.fill = "grey"
-    FullRat.add(RatEye)
-    FullRat.add(RatNose)
-    FullRat.visible = False
-    app.StageSymbols.append(FullRat)
+    Rat = AssignSymbol("Rat")
+    app.StageSymbols.append(Rat)
     
-    Yun1 = Circle(200,100,50,fill = "grey",border = "yellow",borderWidth = 5)
-    Yun2 = Circle(200,100,25)
-    Yun3 = Rect(100,175,200,30,fill = "grey",border = "yellow",borderWidth = 5)
-    Yun4 = Rect(150,205,25,60,fill = "grey",border = "yellow",borderWidth = 5)
-    Yun5 = Rect(225,205,25,60,fill = "grey",border = "yellow",borderWidth = 5)
-    Yun6 = Polygon(75,275,200,355,325,275,335,290,200,380,65,290,fill = "grey",border = "yellow",borderWidth = 4)
-    FullYun = Group(Yun1,Yun2,Yun3,Yun4,Yun5,Yun6)
-    FullYun.visible = False
-    app.StageSymbols.append(FullYun)
+    Yun = AssignSymbol("Yun")
+    app.StageSymbols.append(Yun)
     
-    Chalice = Polygon(169,199,175,238,190,253,190,270,169,284,231,284,210,270,210,253,225,238,231,199,fill = "grey")
-    Blood = Oval(200,200,62,30,fill = "red")
-    FullBloodBath = Group(Chalice,Blood)
-    FullBloodBath.visible = False
-    app.EnlightenmentStageSymbols.append(FullBloodBath)
+    BloodBath = AssignSymbol("BloodBath")
+    app.Floors[0].EnlightenmentStageSymbols.append(BloodBath)
+    
+def AssignSymbol(SpriteName):
+    if SpriteName == "Rat":
+        Rat = Polygon(77,154,84,141,119,126,153,106,157,84,177,74,194,85,193,85,226,139,244,162,246,205,209,226,177,228,141,225,179,213,157,212,154,216,177,160,157,178,135,208,116,217,129,166,107,207,105,170,79,153,111,147,105,163,81,150)
+        RatEye = Circle(137,140,10,fill = "red")
+        RatNose = Polygon(77,154,84,141,105,170,fill="pink")
+        RatTail = Group(Line(245,199,288,163),Line(295,92,288,163),Line(295,92,271,72),Line(247,82,271,72),Line(247,82,247,102),Line(271,106,247,102),Line(271,106,272,89),Line(259,86,272,89))
+        FullRat = Group(Rat,RatTail)
+        FullRat.fill = "grey"
+        FullRat.add(RatEye)
+        FullRat.add(RatNose)
+        FullRat.visible = False
+        return FullRat
+        
+    elif SpriteName == "Yun":
+        Yun1 = Circle(200,100,50,fill = "grey",border = "yellow",borderWidth = 5)
+        Yun2 = Circle(200,100,25)
+        Yun3 = Rect(100,175,200,30,fill = "grey",border = "yellow",borderWidth = 5)
+        Yun4 = Rect(150,205,25,60,fill = "grey",border = "yellow",borderWidth = 5)
+        Yun5 = Rect(225,205,25,60,fill = "grey",border = "yellow",borderWidth = 5)
+        Yun6 = Polygon(75,275,200,355,325,275,335,290,200,380,65,290,fill = "grey",border = "yellow",borderWidth = 4)
+        FullYun = Group(Yun1,Yun2,Yun3,Yun4,Yun5,Yun6)
+        FullYun.visible = False
+        return FullYun
+        
+    elif SpriteName == "BloodBath":
+        Chalice = Polygon(169,199,175,238,190,253,190,270,169,284,231,284,210,270,210,253,225,238,231,199,fill = "grey")
+        Blood = Oval(200,200,62,30,fill = "red")
+        FullBloodBath = Group(Chalice,Blood)
+        FullBloodBath.visible = False
+        return FullBloodBath
+        
+    else:
+        DefaultSprite = Oval(200,200,30,45)
+        DefaultSprite.visible = False
+        return DefaultSprite
+        
+        
+def CreateHookStage():
+    
+    Battle = Group()
+    ListOfFights = []
+    
+    Fight = Group()
+    Fight.FightNumber = 0
+    Fight.ListOfParts = []
+    
+    Part = Group()
+    Part.ListOfFighters = []
+    Fight.RewardCards = []
+    Fight.RewardCharacters = []
+    
+    print("creating Hook's reward cards")
+    
+    for Spam in range(3):
+        SpeedDiceList = []
+        CreateSpeedDie(1,4,SpeedDiceList)
+        ResistanceList = [0,1,1,0,1,1]
+        AttributedPassives = []
+        CreateCharacterCard("Hook Fixer","green",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters,"Yun",AttributedPassives)
+        
+    for Spam in range(3):
+        SpeedDiceList = []
+        CreateSpeedDie(1,4,SpeedDiceList)
+        ResistanceList = [0,1,2,0,1,2]
+        AttributedPassives = []
+        CreateCharacterCard("McCulin","blue",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters,"Yun",AttributedPassives)
+        
+    for Spam in range(2):
+        SpeedDiceList = []
+        CreateSpeedDie(2,4,SpeedDiceList)
+        ResistanceList = [2,0,0,2,0,0]
+        AttributedPassives = []
+        CreateCharacterCard("Taein","purple",SpeedDiceList,3,46,22,ResistanceList,Fight.RewardCharacters,"Yun",AttributedPassives)
+    #add final named hook member
+    
+    DiceList = []
+    CreateDie(3,5,"blunt",DiceList,"3Reduce","Clash Win","FollowingOpponentDie",False) #3Reduce 3 max val opps next die
+    CreateDie(3,4,"pierce",DiceList,"2NextBleed","On Hit","Enemy",False) #hit inflict 2 bleed
+    CreateCard("blue",2,"Defend This!",DiceList,Fight.RewardCards,None) 
+    
+    DiceList = []
+    CreateDie(5,6,"pierce",DiceList,"2NextBleed","On Hit","Enemy",False) #hit inflict 2 bleed
+    CreateDie(2,3,"slash",DiceList,None,None,None,False)
+    CreateCard("purple",2,"Overpower",DiceList,Fight.RewardCards,None) 
+    
+    DiceList = []
+    CreateDie(2,4,"blunt",DiceList,"1NextBleed","On Hit","Enemy",False) #hit inflict 1 bleed
+    CreateDie(3,5,"pierce",DiceList,"1NextBleed","On Hit","Enemy",False) #hit inflict 1 bleed
+    CreateDie(3,5,"slash",DiceList,None,None,None,False)
+    CreateCard("purple",3,"Rampage",DiceList,Fight.RewardCards,None) 
+    
+    DiceList = []
+    CreateDie(1,4,"slash",DiceList,None,None,None,False)
+    CreateCard("green",0,"Track",DiceList,Fight.RewardCards,"1Regain Health") #Recover 1 hp
+    
+    DiceList = []
+    CreateDie(1,7,"evade",DiceList,None,None,None,False)
+    CreateDie(2,2,"pierce",DiceList,"1NextBleed","On Hit","Enemy",False) #hit inflict 1 bleed
+    CreateDie(2,6,"pierce",DiceList,"1NextBleed","On Hit","Enemy",False) #hit inflict 1 bleed
+    CreateCard("green",2,"Goin' First",DiceList,Fight.RewardCards,None)
+    
+    DiceList = []
+    CreateDie(1,6,"slash",DiceList,"1Regain Health","On Hit","Self",False) #hit regain 1 health
+    CreateDie(2,6,"slash",DiceList,"1Regain Health","On Hit","Self",False)
+    CreateCard("blue",2,"Mutilate",DiceList,Fight.RewardCards,"Effect2NextProtection") #Effect2AllNextProtection
+
+
+    SpeedDiceList = []
+    CreateSpeedDie(1,3,SpeedDiceList)
+    DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Thrust","Wallop","Wallop","Preemptive Strike"])
+    ResistanceList = [2,0,1,2,0,1]
+    AttributedPassives = []
+    Hook1 = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Hook Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
+    
+    print("Hok1 done")
+    
+    SpeedDiceList = []
+    CreateSpeedDie(1,2,SpeedDiceList)
+    DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Thrust","Wallop","Wallop","Preemptive Strike"])
+    ResistanceList = [0,1,2,0,1,2]
+    AttributedPassives = []
+    Hook2 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Hook Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
+    
+    print("Hook2 done")
+    
+    Fight.ListOfParts.append(Part)
+    #------------------------------------------------
+    #first part fighters/\
+    
+    Part = Group()
+    Part.ListOfFighters = []
+    
+    SpeedDiceList = []
+    CreateSpeedDie(2,3,SpeedDiceList)
+    DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Commandeering"])
+    ResistanceList = [0,0,2,0,1,2]
+    AttributedPassives = []
+    Naoki = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,21,10,ResistanceList,"Naoki",Part.ListOfFighters,"Yun",AttributedPassives)
+    
+    print("Naoki done")
+    
+    SpeedDiceList = []
+    CreateSpeedDie(1,3,SpeedDiceList)
+    DeckList = CreateDeckList(["Thrust","Wallop","Feelin' Good","Feelin' Good","Preperation","Preperation","Time for a Test","Time for a Test"])
+    ResistanceList = [0,1,0,2,1,0]
+    AttributedPassives = []
+    McCullin = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,22,9,ResistanceList,"McCullin",Part.ListOfFighters,"Yun",AttributedPassives)
+    
+    print("McCullin done")
+    
+    SpeedDiceList = []
+    CreateSpeedDie(1,3,SpeedDiceList)
+    DeckList = CreateDeckList(["Track","Track","Quickness","Feelin' Good","Preperation","Preperation","Time for a Test","Time for a Test"])
+    ResistanceList = [0,0,2,0,0,2]
+    AttributedPassives = []
+    Taein = CreateCharacter(140,225,2,False,SpeedDiceList,DeckList,3,21,10,ResistanceList,"Taein",Part.ListOfFighters,"Yun",AttributedPassives)
+    
+    print("Taein done")
+
+    
+    Fight.ListOfParts.append(Part)
+    
+    ListOfFights.append(Fight)
+    
+    BattleContainer = Rect(-80,-20,100 + len(ListOfFights) * 50,80,fill = "black", border = "orange")
+    Battle.add(BattleContainer)
+    
+    index = 0
+    for Fight in ListOfFights:
+        Fight.FightNumber = index + 1
+        FightIcon = Rect(index * 55,0,40,40,fill = "black", border = "orange")
+        FightIcon.rotateAngle = -45
+        FightNumber = Label(str(Fight.FightNumber),FightIcon.centerX,FightIcon.centerY,fill = "orange")
+        
+        #Battle.Icon = FightIcon
+        Battle.add(FightIcon)
+        Battle.add(FightNumber)
+        FightIcon.Text = FightNumber
+        Fight.FightIcon = FightIcon
+        index += 1
+    
+    Battle.ListOfFights = ListOfFights
+    Battle.FightsUnlocked = 1
+    Battle.visible = False
+    Battle.StageNum = 2
+    Battle.IsSpecialStage = False
+    app.StoryStages.append(Battle)
 
 def CreateBrotherStage():
     
@@ -1300,11 +1784,12 @@ def CreateBrotherStage():
     Fight.RewardCards = []
     Fight.RewardCharacters = []
     
-    for Spam in range(5):
+    for Spam in range(3):
         SpeedDiceList = []
         CreateSpeedDie(1,4,SpeedDiceList)
         ResistanceList = [2,0,1,2,0,1]
-        CreateCharacterCard("Yun's Guy","green",SpeedDiceList,3,43,22,ResistanceList,Fight.RewardCharacters)
+        AttributedPassives = []
+        CreateCharacterCard("Brother WIP","green",SpeedDiceList,3,43,22,ResistanceList,Fight.RewardCharacters,"Brotherhood",AttributedPassives)
     
     DiceList = []
     CreateDie(2,5,"block",DiceList,None,None,None,False) 
@@ -1326,21 +1811,22 @@ def CreateBrotherStage():
     DiceList = []
     CreateDie(2,4,"slash",DiceList,None,None,None,False)
     CreateDie(3,4,"evade",DiceList,None,None,None,False)
-    CreateCard("blue",2,"D-dried Up",DiceList,Fight.RewardCards,"Effect2NextStrength") #on use 2 strength
+    CreateCard("blue",2,"D-dried Up",DiceList,Fight.RewardCards,"Effect2NextStrength")
     
     DiceList = []
     CreateDie(1,12,"blunt",DiceList,"2NextParalysis","On Hit","Enemy",False) #2para
-    CreateCard("purple",3,"Only Live Once",DiceList,Fight.RewardCards,None)
+    CreateCard("purple",3,"YOLO",DiceList,Fight.RewardCards,None)
     
     DiceList = []
     CreateDie(2,3,"blunt",DiceList,None,None,None,False)
-    CreateCard("purple",0,"C-charge Up!",DiceList,Fight.RewardCards,["EffectNextStrength","GainLight"]) #restore 1 light and gain 1 para idk how to do 2 yet
+    CreateCard("purple",0,"C-charge Up!",DiceList,Fight.RewardCards,["EffectNextParalysis","Gain Light"]) #restore 1 light and gain 1 para idk how to do 2 yet
 
     SpeedDiceList = []
     CreateSpeedDie(1,3,SpeedDiceList)
     DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","E-endure","E-endure","E-endure","B-blow It Up!","B-blow It Up!","C-chop It Off"])
     ResistanceList = [0,2,0,0,2,0]
-    Mo = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,24,12,ResistanceList,"Mo",Part.ListOfFighters)
+    AttributedPassives = []
+    Mo = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,24,12,ResistanceList,"Mo",Part.ListOfFighters,"Brotherhood",AttributedPassives)
     
     print("Mo done")
     
@@ -1348,7 +1834,8 @@ def CreateBrotherStage():
     CreateSpeedDie(1,3,SpeedDiceList)
     DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Quickness","E-endure","E-endure","D-dried Up","Only Live Once","Only Live Once"])
     ResistanceList = [0,1,0,1,2,0]
-    Consta = CreateCharacter(140,225,2,False,SpeedDiceList,DeckList,3,22,6,ResistanceList,"Consta",Part.ListOfFighters)
+    AttributedPassives = []
+    Consta = CreateCharacter(140,225,2,False,SpeedDiceList,DeckList,3,22,6,ResistanceList,"Consta",Part.ListOfFighters,"Brotherhood",AttributedPassives)
     
     print("Consta done")
     
@@ -1356,7 +1843,8 @@ def CreateBrotherStage():
     CreateSpeedDie(1,3,SpeedDiceList)
     DeckList = CreateDeckList(["C-charge Up!","C-charge Up!","E-endure","E-endure","D-dried Up","D-dried Up","C-chop It Off","C-chop It Off"])
     ResistanceList = [0,0,1,1,0,2]
-    Arnold = CreateCharacter(190,275,2,False,SpeedDiceList,DeckList,3,22,10,ResistanceList,"Arnold",Part.ListOfFighters)
+    AttributedPassives = []
+    Arnold = CreateCharacter(190,275,2,False,SpeedDiceList,DeckList,3,22,10,ResistanceList,"Arnold",Part.ListOfFighters,"Brotherhood",AttributedPassives)
     
     print("Arnold done")
     
@@ -1402,11 +1890,12 @@ def CreateYunStage():
     
     print("creating yun's reward cards")
     
-    for Spam in range(5):
+    for Spam in range(3):
         SpeedDiceList = []
         CreateSpeedDie(1,4,SpeedDiceList)
         ResistanceList = [2,0,1,2,0,1]
-        CreateCharacterCard("Yun's Guy","green",SpeedDiceList,3,43,22,ResistanceList,Fight.RewardCharacters)
+        AttributedPassives = []
+        CreateCharacterCard("Yun's Guy","green",SpeedDiceList,3,43,22,ResistanceList,Fight.RewardCharacters,"Yun",AttributedPassives)
     
     DiceList = []
     CreateDie(1,4,"evade",DiceList,None,None,None,False) 
@@ -1442,7 +1931,8 @@ def CreateYunStage():
     CreateSpeedDie(1,2,SpeedDiceList)
     DeckList = CreateDeckList(["Evade","Evade","Light Attack","Light Attack","Light Defense","Light Defense",])
     ResistanceList = [2,1,0,2,1,0]
-    Yun1 = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,10,5,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters)
+    AttributedPassives = []
+    Yun1 = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,15,7,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
     
     print("Yun1 done")
     
@@ -1450,7 +1940,8 @@ def CreateYunStage():
     CreateSpeedDie(1,2,SpeedDiceList)
     DeckList = CreateDeckList(["Evade","Evade","Light Attack","Light Attack","Light Defense","Light Defense",])
     ResistanceList = [0,2,1,0,2,1]
-    Yun2 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,10,5,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters)
+    AttributedPassives = []
+    Yun2 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,15,7,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
     
     print("Yun2 done")
     
@@ -1475,7 +1966,8 @@ def CreateYunStage():
         SpeedDiceList = []
         CreateSpeedDie(1,4,SpeedDiceList)
         ResistanceList = [0,2,1,0,2,1]
-        CreateCharacterCard("Finn","blue",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters)
+        AttributedPassives = []
+        CreateCharacterCard("Finn","blue",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters,"Yun",AttributedPassives)
     
     DiceList = []
     CreateDie(2,6,"block",DiceList,None,None,None,False)
@@ -1488,7 +1980,8 @@ def CreateYunStage():
     CreateSpeedDie(1,2,SpeedDiceList)
     DeckList = CreateDeckList(["Thrust","Thrust","Preperation","Preperation","Wallop","Wallop","Struggle","Struggle"])
     ResistanceList = [0,1,2,0,1,2]
-    Finn = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,2,18,4,ResistanceList,"Finn",Part.ListOfFighters)
+    AttributedPassives = []
+    Finn = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,2,18,6,ResistanceList,"Finn",Part.ListOfFighters,"Yun",AttributedPassives)
     
     print("Finn done")
     
@@ -1509,17 +2002,19 @@ def CreateYunStage():
     
     print("creating yun3's reward cards")
     
-    for Spam in range(4):
+    for Spam in range(3):
         SpeedDiceList = []
         CreateSpeedDie(1,4,SpeedDiceList)
         ResistanceList = [0,1,2,0,1,2]
-        CreateCharacterCard("Eri","blue",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters)
+        AttributedPassives = []
+        CreateCharacterCard("Eri","blue",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters,"Yun",AttributedPassives)
         
-    for Spam in range(3):
+    for Spam in range(2):
         SpeedDiceList = []
         CreateSpeedDie(2,4,SpeedDiceList)
         ResistanceList = [2,0,0,2,0,0]
-        CreateCharacterCard("Yun","purple",SpeedDiceList,3,46,22,ResistanceList,Fight.RewardCharacters)
+        AttributedPassives = []
+        CreateCharacterCard("Yun","purple",SpeedDiceList,3,46,22,ResistanceList,Fight.RewardCharacters,"Yun",AttributedPassives)
     
     DiceList = []
     CreateDie(2,6,"block",DiceList,"3Reduce","Clash Win","FollowingOpponentDie",False) #3Reduce 3 max val opps next die
@@ -1548,7 +2043,8 @@ def CreateYunStage():
     CreateSpeedDie(1,3,SpeedDiceList)
     DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Thrust","Wallop","Wallop","Preemptive Strike"])
     ResistanceList = [2,0,1,2,0,1]
-    Yun1 = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters)
+    AttributedPassives = []
+    Yun1 = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
     
     print("Yun1 done")
     
@@ -1556,7 +2052,8 @@ def CreateYunStage():
     CreateSpeedDie(1,2,SpeedDiceList)
     DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Thrust","Wallop","Wallop","Preemptive Strike"])
     ResistanceList = [0,1,2,0,1,2]
-    Yun2 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters)
+    AttributedPassives = []
+    Yun2 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
     
     print("Yun2 done")
     
@@ -1571,7 +2068,8 @@ def CreateYunStage():
     CreateSpeedDie(2,3,SpeedDiceList)
     DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Commandeering"])
     ResistanceList = [2,0,0,2,0,0]
-    Yun = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,22,10,ResistanceList,"Yun",Part.ListOfFighters)
+    AttributedPassives = []
+    Yun = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,22,10,ResistanceList,"Yun",Part.ListOfFighters,"Yun",AttributedPassives)
     
     print("Yun done")
     
@@ -1579,7 +2077,8 @@ def CreateYunStage():
     CreateSpeedDie(1,3,SpeedDiceList)
     DeckList = CreateDeckList(["Thrust","Wallop","Feelin' Good","Feelin' Good","Preperation","Preperation","Time for a Test","Time for a Test"])
     ResistanceList = [0,1,2,0,1,2]
-    Eri = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,22,8,ResistanceList,"Eri",Part.ListOfFighters)
+    AttributedPassives = []
+    Eri = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,22,8,ResistanceList,"Eri",Part.ListOfFighters,"Yun",AttributedPassives)
     
     print("Eri done")
 
@@ -1629,21 +2128,24 @@ def CreateRatsStage():
 
     print("creating rat's cards")
     
-    for Spam in range(3):
+    for Spam in range(2):
         SpeedDiceList = []
         CreateSpeedDie(1,4,SpeedDiceList)
         ResistanceList = [2,1,0,2,1,0]
-        CreateCharacterCard("Rat1","green",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters)
-    for Spam in range(3):
+        AttributedPassives = []
+        CreateCharacterCard("Rat1","green",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters,"Rat",AttributedPassives)
+    for Spam in range(2):
         SpeedDiceList = []
         CreateSpeedDie(1,4,SpeedDiceList)
         ResistanceList = [0,2,1,0,2,1]
-        CreateCharacterCard("Rat2","green",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters)
-    for Spam in range(3):
+        AttributedPassives = []
+        CreateCharacterCard("Rat2","green",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters,"Rat",AttributedPassives)
+    for Spam in range(2):
         SpeedDiceList = []
         CreateSpeedDie(1,4,SpeedDiceList)
         ResistanceList = [1,0,2,1,0,2]
-        CreateCharacterCard("Rat3","green",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters)
+        AttributedPassives = []
+        CreateCharacterCard("Rat3","green",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters,"Rat",AttributedPassives)
     
     DiceList = []
     CreateDie(1,2,"slash",DiceList,None,None,None,False)
@@ -1670,7 +2172,6 @@ def CreateRatsStage():
     DiceList = []
     CreateDie(1,3,"evade",DiceList,None,None,None,False)
     CreateCard("blue",1,"Run Away",DiceList,None,None)
-    
     
     
     print("creating rat's reward cards")
@@ -1713,7 +2214,8 @@ def CreateRatsStage():
     CreateSpeedDie(1,2,SpeedDiceList)
     DeckList = CreateDeckList(["Organ Harvesting","Organ Harvesting","Backstreets Shove","Claw Off","Run Away"])
     ResistanceList = [2,1,0,2,1,0]
-    Rat1 = CreateCharacter(170,175,2,False,SpeedDiceList,DeckList,3,10,5,ResistanceList,"Lenny",Part.ListOfFighters)
+    AttributedPassives = []
+    Rat1 = CreateCharacter(170,105,2,False,SpeedDiceList,DeckList,1,10,5,ResistanceList,"Lenny",Part.ListOfFighters,"Rat",AttributedPassives)
     
     print("rat1 done")
     
@@ -1721,7 +2223,8 @@ def CreateRatsStage():
     CreateSpeedDie(1,2,SpeedDiceList)
     DeckList = CreateDeckList(["Rat's Guide","Rat's Guide","Backstreets Shove","Claw Off","Run Away"])
     ResistanceList = [0,2,1,0,2,1]
-    Rat2 = CreateCharacter(130,225,2,False,SpeedDiceList,DeckList,3,10,5,ResistanceList,"Mang-Chi",Part.ListOfFighters)
+    AttributedPassives = []
+    Rat2 = CreateCharacter(120,170,2,False,SpeedDiceList,DeckList,1,10,5,ResistanceList,"Mang-Chi",Part.ListOfFighters,"Rat",AttributedPassives)
     
     print("rat2 done")
     
@@ -1729,7 +2232,8 @@ def CreateRatsStage():
     CreateSpeedDie(1,2,SpeedDiceList)
     DeckList = CreateDeckList(["Sneaky Blow","Sneaky Blow","Backstreets Shove","Claw Off","Run Away"])
     ResistanceList = [1,0,2,1,0,2]
-    Rat3 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,10,5,ResistanceList,"Pete",Part.ListOfFighters)
+    AttributedPassives = []
+    Rat3 = CreateCharacter(70,235,2,False,SpeedDiceList,DeckList,1,10,5,ResistanceList,"Pete",Part.ListOfFighters,"Rat",AttributedPassives)
     
     print("rat3 done")
     Fight.ListOfParts.append(Part)
@@ -1790,13 +2294,18 @@ def CreateBloodBathStage():
     CreateDie(1,4,"block",DiceList,None,None,None,False)
     CreateCard("blue",0,"Sinking",DiceList,None,None)
     
+    #creating the abnormailty pages #name,level,positive,single target,description,effect(s),list
+    CreateAbnormailyPage("Blood",2,False,True,"Defensive dice gain 1-2 power; Recieve +3-5 stagger damage",["Create PassiveRolledDefensive+1-2","Create PassiveRecievedAllStagger+3-5"],Fight.RewardCards)
+    CreateAbnormailyPage("Scars",1,True,True,"Take 2-5 less damage from slash attacks; 20% chance to negate attack",["Create PassiveRecievedSlashDamage-2-5","Scars"],Fight.RewardCards)
+    CreateAbnormailyPage("Pale Hands",1,True,True,"After 3 hits on the same target deal 3-10 Stagger (resets when switching target)",["Pale Hands"],Fight.RewardCards)
     
     SpeedDiceList = []
     CreateSpeedDie(1,2,SpeedDiceList)
     DeckList = CreateDeckList(["Depression","Pale Hands","Sinking"])
-    ResistanceList = [2,1,0,2,1,0]
-    Rat1 = CreateCharacter(170,175,2,False,SpeedDiceList,DeckList,3,10,5,ResistanceList,"Lenny",Part.ListOfFighters)
-    
+    ResistanceList = [-1,0,1,-1,1,2]
+    AttributedPassives = ["Create PassiveRecievedSlashDamage-2-5","Create PassiveRolledDefensive+1-2","Pale Hands"]
+    BloodBath = CreateCharacter(170,175,2,False,SpeedDiceList,DeckList,3,30,10,ResistanceList,"Bloody Cup",Part.ListOfFighters,"BloodBath",AttributedPassives)
+    #has passives of 1-5 less damage from slash and 3 bind but +3 max block
     print("Bloodbath done")
     
     Fight.ListOfParts.append(Part)
@@ -1823,8 +2332,7 @@ def CreateBloodBathStage():
     Battle.visible = False
     Battle.StageNum = 1
     Battle.IsSpecialStage = True
-    app.EnlightenmentStages.append(Battle)
-
+    app.Floors[0].EnlightenmentStages.append(Battle)
 
 
 def GenerateTypeSprite(Type):
@@ -1906,95 +2414,6 @@ def CreateDie(min,max,type,diceList,Effect,Trigger,Target,Counter):
         
     diceList.append(Die)
     
-def UpdateDamageRange(Die):
-    
-    if Die.min + Die.MinModifier > Die.max + Die.MaxModifier:
-        if Die.max + Die.MaxModifier < 0:
-            Die.DamageRangeText.value = str(0) + "-" + str(0)
-        else:
-            Die.DamageRangeText.value = str(Die.max + Die.MaxModifier) + "-" + str(Die.max + Die.MaxModifier)
-    else:
-        if Die.max + Die.MaxModifier < 0:
-
-            Die.DamageRangeText.value = str(0) + "-" + str(0)
-        else:
-            if Die.min + Die.MinModifier < 0:
-                Die.DamageRangeText.value = str(0) + "-" + str(Die.max + Die.MaxModifier)
-            else:
-                Die.DamageRangeText.value = str(Die.min + Die.MinModifier) + "-" + str(Die.max + Die.MaxModifier)
-
-def ParseForDescription(String,Trigger,Target):
-    
-    OriginalText = String
-    Description = ""
-    Potency = 1
-    NextTurnActivate = False
-    Description += Trigger
-    
-    StartChar = OriginalText[0:6]
-    
-    if StartChar == "Effect":
-        OriginalText = OriginalText[6:]
-        
-    if StartChar == "Reduce":
-        OriginalText = OriginalText[6:]
-
-    StartChar = OriginalText[0:1]
-    if StartChar.isdigit():
-        Potency = int(StartChar)
-        OriginalText = OriginalText[1:]
-        
-    StartChar = OriginalText[0:3]
-    if StartChar == "All":
-        OriginalText = OriginalText[3:]
-        StartChar = OriginalText[0:7]
-        if StartChar == "Players":
-            OriginalText = OriginalText[7:]
-            Target = "AllPlayers"
-        StartChar = OriginalText[0:7]
-        if StartChar == "Enemies":
-            OriginalText = OriginalText[7:]
-            Target = "AllEnemies"
-        
-    
-    StartChar = OriginalText[0:4]
-    if StartChar == "Next":
-        NextTurnActivate = True
-        OriginalText = OriginalText[4:]
-
-    if Target == "Enemy":
-        Description += " Inflict"
-    elif Target == "Self":
-        Description += " Gain"
-    elif Target == "AllPlayers":
-        Description += " Give all Allies"
-        
-    if OriginalText == "Gain Light":
-        Description += " " + str(Potency) + " Light"
-    else:
-        Description += " " + str(Potency) + " " + OriginalText
-    if NextTurnActivate:
-        Description += " Next Turn"
-    else:
-        Description += " This Turn"
-    
-    return Description
-    
-def CardPartition(String):
-    PartitionedDescription = []
-    if len(String) > 14:
-        while len(String) > 14:
-            PartDescription = String[0:14]
-            Piece = Label(PartDescription,0,0,fill = "yellow",size = 8)
-            PartitionedDescription.append(Piece)
-            String = String[14:]
-        FinalPiece = Label(String,0,0,fill = "yellow",size = 8)
-        PartitionedDescription.append(FinalPiece)
-    else:
-        FinalPiece = Label(String,0,0,fill = "yellow",size = 8)
-        PartitionedDescription.append(FinalPiece)
-        
-    return PartitionedDescription
         
 def CreateSpeedDie(min,max,diceList):
     Die = Group()
@@ -2035,6 +2454,48 @@ def CreateLightSprite(Character):
     Character.add(Light)
     Character.LightSprites.append(Light)
     FixLightSpritePositions(Character)
+    
+def CreateEmotionBar(Character,List):
+
+    EmotionReq = 3 + 2 * Character.EmotionLevel
+    FullEmotionBar = Group()
+    StartX = 0
+    
+    for Count in range(EmotionReq):
+        EmotionBar = Rect(StartX,0,30,20,fill = "grey",border = "black")
+        StartX = EmotionBar.right
+        FullEmotionBar.add(EmotionBar)
+        List.append(EmotionBar)
+    
+    FullEmotionBar.width = 70
+    FullEmotionBar.height = 15
+    
+    EmotionLevelText = Label(Character.EmotionLevel,FullEmotionBar.left - 10,10)
+    FullEmotionBar.EmotionLevelText = EmotionLevelText
+    FullEmotionBar.add(EmotionLevelText)
+    List.append(EmotionLevelText)
+    
+    return FullEmotionBar
+    
+def UpdateEmotionBar(Character):
+    index = 0
+    Character.EmotionBar.centerX = Character.CharacterSprite.centerX
+    Character.EmotionBar.centerY = Character.CharacterSprite.centerY - 100
+    #print("emotion list length = " + str(len(Character.EmotionBarList)))
+    for Count in range(len(Character.EmotionCoins)):
+        #print("index is " + str(index))
+        if Character.EmotionCoins[index] == True: #checking if positive
+            Character.EmotionBarList[index].fill = "green"
+        else:
+            Character.EmotionBarList[index].fill = "red"
+        index += 1
+def ResetEmotionBar(Character):
+    Character.EmotionBar.visible = False
+    Character.remove(Character.EmotionBar)
+    Character.EmotionBarList.clear()
+    Character.EmotionBar = CreateEmotionBar(Character,Character.EmotionBarList)
+    Character.add(Character.EmotionBar)
+    UpdateEmotionBar(Character)
 #----------------------------------------------------------------------------------------------
     
 def CreateCard(color,cost,name,dice,AddToList,OnUseEffect):
@@ -2215,7 +2676,7 @@ def CopyCard(Card,NewList):
     FullCard.visible = False
     #FullCard.IsDisplayCard = False
 
-def CreateCharacter(x,y,facing,ControlledByPlayer,SpeedDiceList,Decklist,MaxLight,MaxHealth,MaxStagger,ResistanceList, name, ListToAddTo):
+def CreateCharacter(x,y,facing,ControlledByPlayer,SpeedDiceList,Decklist,MaxLight,MaxHealth,MaxStagger,ResistanceList, name, ListToAddTo,SpriteName,AttributedPassives):
     FullCharacter = Group()
     FullCharacter.StartX = x
     FullCharacter.StartY = y 
@@ -2234,10 +2695,20 @@ def CreateCharacter(x,y,facing,ControlledByPlayer,SpeedDiceList,Decklist,MaxLigh
     FullCharacter.ClearStaggered = False 
     
     FullCharacter.SpeedDice = []
-    #FullCharacter.SpeedDiceText = []
     FullCharacter.LightSprites = []
     FullCharacter.Library = []
     FullCharacter.Hand = []
+    
+    FullCharacter.AttributedPassives = AttributedPassives
+    
+    FullCharacter.EmotionCoins = []
+    FullCharacter.BankedEmotionCoins = []
+    FullCharacter.EmotionLevel = 0
+    
+    FullCharacter.EmotionBarList = []
+    FullCharacter.EmotionBar = CreateEmotionBar(FullCharacter,FullCharacter.EmotionBarList) #creates the bar and assigns to list
+    FullCharacter.add(FullCharacter.EmotionBar)
+    FullCharacter.EmotionBar.visible = False
     
     FullCharacter.HandOnDisplay = False
     
@@ -2249,15 +2720,14 @@ def CreateCharacter(x,y,facing,ControlledByPlayer,SpeedDiceList,Decklist,MaxLigh
         Die.ConnectedCharacter = FullCharacter
         #print("assigned a character to a die")
         
-    CharacterSprite = Oval(x,y,30,45)
+    CharacterSprite = AssignSymbol(SpriteName)
+    CharacterSprite.width = 60
+    CharacterSprite.height = 40
     FullCharacter.CharacterSprite = CharacterSprite
-    Eye = Circle(x+10,y-10,5,fill="red")
-    FullCharacter.Eye = Eye
-    FullCharacter.add(CharacterSprite, Eye)
+
+    FullCharacter.add(CharacterSprite)
     FullCharacter.FacingLeft = ControlledByPlayer
-    if FullCharacter.FacingLeft:
-        FullCharacter.Eye.centerX = FullCharacter.CharacterSprite.centerX -10
-    
+
     HealthBar = Rect(0,0,40,20,fill = "red")
     HealthBar.right = FullCharacter.CharacterSprite.centerX
     HealthBar.centerY = FullCharacter.CharacterSprite.centerY + 40
@@ -2368,7 +2838,7 @@ def CreateSpeedDice(NewSpeedDiceList,FullCharacter):
         FullCharacter.SpeedDice.append(Die)
     
 
-def CreateCharacterCard(Name,color,SpeedDiceList,MaxLight,MaxHealth,MaxStagger,ResistanceList,List):
+def CreateCharacterCard(Name,color,SpeedDiceList,MaxLight,MaxHealth,MaxStagger,ResistanceList,List,SpriteName,AttributedPassives):
     FullCharacterCard = Group()
     FullCharacterCard.AttributedCards = []
     FullCharacterCard.MaxLight = MaxLight
@@ -2377,17 +2847,23 @@ def CreateCharacterCard(Name,color,SpeedDiceList,MaxLight,MaxHealth,MaxStagger,R
     FullCharacterCard.ResistanceList = ResistanceList
     FullCharacterCard.SortNumber = 0
     FullCharacterCard.Library = []
+    
+    FullCharacterCard.AttributedPassives = AttributedPassives
 
     FullCharacterCard.SpeedDice = list(SpeedDiceList)
     
     FullCharacterCard.Background = Rect(0,0,80,120,fill = "lightgrey",border = color)
     DispY = 0
     
+    FullCharacterCard.Sprite = AssignSymbol(SpriteName)
+    FullCharacterCard.Sprite.width = 60
+    FullCharacterCard.Sprite.height = 40
+    
     FullCharacterCard.Name = Label(Name,FullCharacterCard.Background.centerX,10 + DispY,fill = "black")
     DispY += 20
     FullCharacterCard.LightGroup = Group()
-    FullCharacterCard.LightGroup.Icon = Circle(5,5 + DispY,4,fill = "yellow")
-    FullCharacterCard.LightGroup.Text = Label(MaxLight,25,5 + DispY,fill = "black")
+    FullCharacterCard.LightGroup.Icon = Circle(15,5 + DispY,4,fill = "yellow")
+    FullCharacterCard.LightGroup.Text = Label(MaxLight,35,5 + DispY,fill = "black")
     DispY += 20
     FullCharacterCard.HealthText = Label(MaxHealth,15,DispY,fill = "red")
     FullCharacterCard.StaggerText = Label(MaxStagger,45,DispY,fill = "yellow")
@@ -2423,11 +2899,22 @@ def AssignOverrideCard(Character,OverrideCard):
     print("Assigned override")
     app.ActiveCharacterCards.append(OverrideCard)
     app.UnusedCharacterCards.remove(OverrideCard)
-    OverrideCard.visible = False
+    OverrideCard.visible = True
+    OverrideCard.centerX = 50
+    OverrideCard.centerY = 120
+    
+    #needs to happen first because this is the only way too see both
+    if OverrideCard.Sprite != None:
+        Character.CharacterSprite.visible = False
+        Character.remove(Character.CharacterSprite)
+        Character.CharacterSprite = OverrideCard.Sprite
+        Character.CharacterSprite.visible = True
+        Character.add(OverrideCard.Sprite)
     
     if Character.OverrideCard != None:
         RemoveOverrideCard(Character)
     Character.OverrideCard = OverrideCard
+    
     
     for Die in OverrideCard.SpeedDice:
         Die.ConnectedCharacter = Character
@@ -2438,6 +2925,7 @@ def AssignOverrideCard(Character,OverrideCard):
     Character.MaxLight = OverrideCard.MaxLight
     Character.Light = Character.MaxLight
     Character.ResistanceList = OverrideCard.ResistanceList
+    Character.AttributedPassives = OverrideCard.AttributedPassives
     #Character.SpeedDice = OverrideCard.SpeedDice
     CreateSpeedDice(OverrideCard.SpeedDice,Character)
     for Die in Character.SpeedDice:
@@ -2445,6 +2933,9 @@ def AssignOverrideCard(Character,OverrideCard):
     
     UpdateBars(Character)
     RefreshResistances(Character)
+    if app.Startup == False:
+        #DisplayCharacterEdit(Character)
+        FixUpCharacter(Character)
     
 def RemoveOverrideCard(Character):
     print("Removed override")
@@ -2459,30 +2950,7 @@ def RemoveOverrideCard(Character):
         Die.visible = False
     Character.SpeedDice.clear()
 
-def RefreshResistances(Character):
-    
-    index = 0
-    for Text in Character.AdditionalInfoBoard.TextList:
-        ResValue = Character.ResistanceList[index]
-        ResTextVal = ""
-        if ResValue == 2:
-            ResTextVal = "Fatal"
-        elif ResValue == 1:
-            ResTextVal = "Weak"
-        elif ResValue == 0:
-            ResTextVal = "Normal"
-        elif ResValue == -1:
-            ResTextVal = "Endured"
-        elif ResValue == -2:
-            ResTextVal = "Ineffective"
-        elif ResValue == -3:
-            ResTextVal = "Immune"
-        else:
-            print("MASSIVE ERROR failed to find type sprite resistance 2")
-        
-        Text.value = ResTextVal
-        
-        index += 1
+
     
 def GenerateResistanceBoard(ResistanceList,AdditionalInfoBoard):
     index = 0
@@ -2536,6 +3004,26 @@ def Startup():
     #create characters
     CreateCharacters()
     
+    
+    for Count in range(7):
+        Floor = Group()
+        Floor.CharactersUnlocked = 1
+        Floor.EnlightenmentStages = []
+        Floor.EnlightenmentStageSymbols = []
+        Floor.EnlightenmentUnlocked = 0
+        if app.Debug == True:
+            Floor.EnlightenmentUnlocked = 5
+        Floor.CurrentEmotionLevelCap = 1
+        Floor.Unlocked = False
+        Floor.EmotionPayoffs = [[],[],[],[],[]] #the different levels 1-5 have containers
+        app.Floors.append(Floor)
+        
+    app.Floors[0].Unlocked = True
+    if app.Debug == True:
+        app.Floors[1].Unlocked = True
+    #app.Floors[2].Unlocked = True
+    app.CurrentFloor = app.Floors[0]
+    
     #------------------------------------------------------------------------------
     #Hide cards
     
@@ -2545,8 +3033,6 @@ def HideAllSetupCards():
     #this is only called at setup lol
     for Card in AllTotalCards:
         Card.visible = False
-        #VisibleList(Card.FullDisplay, False)
-        #VisibleList(Card.DisplayList, False)
         pass
 def CreateCards():
     DiceList = []
@@ -2594,14 +3080,18 @@ def CreateCharacters():
         "Charge and Cover","Light Attack","Light Attack",
         "Light Attack","Light Defense","Light Defense","Focused Strikes"])
         ResistanceList = [2,1,0,2,1,0]
-        CreateCharacter(290,75 + index * 100,1,True,SpeedDiceList,DeckList,3,30,15,ResistanceList,"Roland" + str(index),PlayerCharacters)
+        AttributedPassives = []
+        CreateCharacter(290,75 + index * 100,1,True,SpeedDiceList,DeckList,3,30,15,ResistanceList,"Roland" + str(index),PlayerCharacters,"Peasant",AttributedPassives)
         index += 1
     CharacterCardsLen = len(app.UnusedCharacterCards)
     for Character in PlayerCharacters:
         SpeedDiceList = []
         CreateSpeedDie(1,4,SpeedDiceList)
-        CreateCharacterCard("Peasant","green",SpeedDiceList,3,30,15,ResistanceList,app.UnusedCharacterCards)
+        ResistanceList = [2,1,0,2,1,0]
+        AttributedPassives = []
+        CreateCharacterCard("Peasant","green",SpeedDiceList,3,30,15,ResistanceList,app.UnusedCharacterCards,"Peasant",AttributedPassives)
         AssignOverrideCard(Character,app.UnusedCharacterCards[CharacterCardsLen]) #we dont need -1 bc we want the new one
+        Character.OverrideCard.visible = False
     
 
 #------------------------------------------------------------------------------------------------------
@@ -2658,11 +3148,24 @@ def ShuffleList(List):
         
 def GainLight(Character):
     
-    if Character.MaxLight > len(Character.LightSprites):
-        CreateLightSprite(Character)
+    if Character.MaxLight > len(Character.LightSprites): 
+        for Gap in range(Character.MaxLight - len(Character.LightSprites)):
+            CreateLightSprite(Character)
     if Character.Light < Character.MaxLight:
         Character.Light += 1
-        FixLightSpritePositions(Character)
+        
+    FixLightSpritePositions(Character)
+    
+def RemoveLight(Character):
+    
+    if len(Character.LightSprites) > 0:
+        print("removing light from " + Character.name)
+        Character.MaxLight -= 1
+        Character.EmotionLevel -= 1
+        Character.LightSprites[0].visible = False
+        Character.remove(Character.LightSprites[0])
+        Character.LightSprites.remove(Character.LightSprites[0])
+        
         
 def RollSpeedDice(Character):
     
@@ -2894,7 +3397,11 @@ def DieAct(Die):
     
     #Activates on use effect of this card
     if Die.HeldPage.OnUseEffect != None:
-        ActivateCardAbility(Die.HeldPage.OnUseEffect, Die)
+        if type(Die.HeldPage.OnUseEffect) == list: #if multiple effects
+            for Effect in Die.HeldPage.OnUseEffect:
+                ActivateCardAbility(Effect,Die)
+        else:
+            ActivateCardAbility(Die.HeldPage.OnUseEffect, Die)
     #Resolve die value buffs and nerfs
     ResolveDieValueChanges(Die)
     
@@ -2905,13 +3412,17 @@ def DieAct(Die):
         
             #Activates on use effect of the other clashing card
         if Die.TargetDie.HeldPage != None and Die.TargetDie.HeldPage.OnUseEffect != None:
-            ActivateCardAbility(Die.TargetDie.HeldPage.OnUseEffect, Die.TargetDie)
+            if type(Die.TargetDie.HeldPage.OnUseEffect) == list:
+                for Effect in Die.TargetDie.HeldPage.OnUseEffect:
+                    ActivateCardAbility(Effect, Die.TargetDie)
+            else:
+                 ActivateCardAbility(Die.TargetDie.HeldPage.OnUseEffect, Die.TargetDie)
         ResolveDieValueChanges(Die.TargetDie)
         
         pass
         
     #checks for extra dice to clash with
-    elif len(TargetDie.ConnectedCharacter.UnusedDice) > 0:
+    elif TargetDie != None and TargetDie.ConnectedCharacter != None and len(TargetDie.ConnectedCharacter.UnusedDice) > 0:
         ShowPagesClashBetweenPageAndExtra(Die)
         
     else:
@@ -2982,6 +3493,8 @@ def HideCharacterUI(Character):
     
     for Light in Character.LightSprites:
         Light.visible = False
+        
+    Character.EmotionBar.visible = False
 
 def ShowCharacterUI(Character):
     for Die in Character.SpeedDice:
@@ -2990,6 +3503,9 @@ def ShowCharacterUI(Character):
     
     for Light in Character.LightSprites:
         Light.visible = True
+        
+    Character.EmotionBar.visible = True
+    UpdateEmotionBar(Character)
         
 def MoveATowardB(Character,SecondSprite):
     #FirstFullSprite = Group(Character.CharacterSprite,Character.Eye)
@@ -3050,9 +3566,11 @@ def ClashingWithExtraDice(FirstDie, ExtraDieList, ExtraDiceCharacter):
     
     if FirstDieResult > SecondDieResult:
         
+        AddEmotion(FirstDie.ConnectedCharacter,True)
         if FirstDie.HeldPage.DiceList[0].Trigger == "Clash Win":
             TriggerDieEffect(FirstDie.HeldPage.DiceList[0],FirstDie.ConnectedCharacter,ExtraDiceCharacter)
             
+        AddEmotion(ExtraDiceCharacter,False)
         if ExtraDieList[0].TrueDie.Trigger == "Clash Lose":
             TriggerDieEffect(ExtraDieList[0].TrueDie,ExtraDiceCharacter,FirstDie.ConnectedCharacter)
         
@@ -3098,9 +3616,11 @@ def ClashingWithExtraDice(FirstDie, ExtraDieList, ExtraDiceCharacter):
             
     elif SecondDieResult > FirstDieResult:
         
+        AddEmotion(ExtraDiceCharacter,True)
         if ExtraDieList[0].TrueDie.Trigger == "Clash Win":
             TriggerDieEffect(ExtraDieList[0].TrueDie,ExtraDiceCharacter,FirstDie.ConnectedCharacter)
             
+        AddEmotion(FirstDie.ConnectedCharacter,False)
         if FirstDie.HeldPage.DiceList[0].Trigger == "Clash Lose":
             TriggerDieEffect(FirstDie.HeldPage.DiceList[0],FirstDie.ConnectedCharacter,ExtraDiceCharacter)
         
@@ -3147,10 +3667,12 @@ def ClashingWithExtraDice(FirstDie, ExtraDieList, ExtraDiceCharacter):
     else:
         ResolveAndRemoveDie(FirstDie)
         ResolveAndRemoveExtraDie(ExtraDieList)
+        AddEmotion(FirstDie.ConnectedCharacter,True)
+        AddEmotion(ExtraDiceCharacter,True)
         print("Equal results no damage")
     
     
-    if len(FirstDie.HeldPage.DiceList) == 0:
+    if FirstDie.HeldPage == None or len(FirstDie.HeldPage.DiceList) == 0:
         ResolveAndRemovePage(FirstDie)
         app.PausedForClash = False
         ClearActingDice()
@@ -3167,6 +3689,9 @@ def ContestOfTwoDice(FirstDie,SecondDie):
     
     if FirstDieResult > SecondDieResult:
         
+        AddEmotion(FirstDie.ConnectedCharacter,True)
+        AddEmotion(SecondDie.ConnectedCharacter,False)
+
         WinningDieResult = FirstDieResult
         WinningDieType = FirstDie.HeldPage.DiceList[0].type
         WinningDie = FirstDie
@@ -3175,6 +3700,9 @@ def ContestOfTwoDice(FirstDie,SecondDie):
         LosingDie = SecondDie
     elif SecondDieResult > FirstDieResult:
         
+        AddEmotion(FirstDie.ConnectedCharacter,False)
+        AddEmotion(SecondDie.ConnectedCharacter,True)
+
         WinningDieResult = SecondDieResult
         WinningDieType = SecondDie.HeldPage.DiceList[0].type
         WinningDie = SecondDie
@@ -3187,6 +3715,8 @@ def ContestOfTwoDice(FirstDie,SecondDie):
         ResolveAndRemoveDie(FirstDie)
         ResolveAndRemoveDie(SecondDie)
         print("Equal results no damage")
+        AddEmotion(FirstDie.ConnectedCharacter,True)
+        AddEmotion(SecondDie.ConnectedCharacter,True)
     else:
         
         if WinningDie.HeldPage.DiceList[0].Trigger == "Clash Win":
@@ -3237,16 +3767,22 @@ def ContestOfTwoDice(FirstDie,SecondDie):
             
             
             
-    if FirstDie.HeldPage != None and len(FirstDie.HeldPage.DiceList) == 0:
+    if FirstDie.HeldPage != None and len(FirstDie.HeldPage.DiceList) == 0: #first die's page runs out of dice
         ResolveAndRemovePage(FirstDie)
-        #app.PausedForClash = False
         ClearActingDice()
-        if SecondDie.HeldPage != None and len(SecondDie.HeldPage.DiceList) > 0:
+        if SecondDie.HeldPage != None and len(SecondDie.HeldPage.DiceList) > 0: #switches the acting die to the second die
+            
+            AddEmotion(SecondDie.ConnectedCharacter,True)
             app.ActingDice.append(SecondDie)
         else:
             app.PausedForClash = False
             
-    if SecondDie.HeldPage != None and len(SecondDie.HeldPage.DiceList) == 0:
+    if SecondDie.HeldPage != None and len(SecondDie.HeldPage.DiceList) == 0: #second die's page runs out of dice
+        
+        if len(app.ActingDice) > 0: #makes sure the other page still exists for the overrun emotion bonus
+            
+            AddEmotion(FirstDie.ConnectedCharacter,True)
+            
         ResolveAndRemovePage(SecondDie)
 
 def OneSidedRolling(FirstDie,SecondDie):
@@ -3265,6 +3801,13 @@ def OneSidedRolling(FirstDie,SecondDie):
             
             AttackAnimation(DiceType,FirstDie.ConnectedCharacter)
             Damage = RollDie(FirstDie.HeldPage.DiceList[0],FirstDie.ConnectedCharacter)
+            
+            if Damage == FirstDie.HeldPage.DiceList[0].max + FirstDie.HeldPage.DiceList[0].MaxModifier:#check for a max roll
+                AddEmotion(FirstDie.ConnectedCharacter,True)
+                
+            elif Damage == FirstDie.HeldPage.DiceList[0].min + FirstDie.HeldPage.DiceList[0].MinModifier:#check for a min roll
+                AddEmotion(FirstDie.ConnectedCharacter,False)
+            
             print(("Dealt: ") + str(Damage) + " damage")
             TakeDamage(SecondDie.ConnectedCharacter,FirstDie.ConnectedCharacter,Damage,FirstDie.HeldPage.DiceList[0].type)
 
@@ -3359,6 +3902,23 @@ def ResolveAndRemovePage(Die):
         Die.ConnectedCharacter.Graveyard.append(Die.HeldPage)
         
         Die.HeldPage = None
+        
+def AddEmotion(Character,Positive):
+    #print("wip")
+    if Character.EmotionLevel < app.CurrentEmotionLevelCap:#check if at max level already
+        if len(Character.EmotionCoins) < len(Character.EmotionBarList): #checks if at max coins per turn
+            Character.EmotionCoins.append(Positive)
+            UpdateEmotionBar(Character)
+    
+def EmotionLevelUp(Character):
+    Character.EmotionLevel += 1
+    Character.MaxLight += 1
+    for Coin in Character.EmotionCoins:
+        Character.BankedEmotionCoins.append(Coin)
+    Character.EmotionCoins.clear()
+    Character.Light = Character.MaxLight - 1
+    GainLight(Character)
+    ResetEmotionBar(Character)
     
 def RollDie(Die,RollingCharacter):
     if Die.Trigger == "On Use":
@@ -3394,17 +3954,52 @@ def ResolveDieValueChanges(SpeedDie):
     for Die in SpeedDie.HeldPage.DiceList:
         Modifier = 0
         for Effect in SpeedDie.ConnectedCharacter.StatusEffects:
-            if Die.type == "Slash" or Die.type == "Blunt" or Die.type == "Pierce":
-                if Effect.name == "Strength":
-                    Modifier += Effect.Count
-                elif Effect.name == "Feeble":
-                    Modifier -= Effect.Count
+            if Effect.BaseEffect:
+                if Die.type == "Slash" or Die.type == "Blunt" or Die.type == "Pierce":
+                    if Effect.name == "Strength":
+                        Modifier += Effect.Count
+                    elif Effect.name == "Feeble":
+                        Modifier -= Effect.Count
+                        
+                elif Die.type == "Evade" or Die.type == "Block":
+                    if Effect.name == "Endurance":
+                        Modifier += Effect.Count
+                    elif Effect.name == "Disarm":
+                        Modifier -= Effect.Count
+                        
+            elif Effect.Trigger == "Rolled":
+                ActivatePassive = False
+                if Effect.Type == "All":
+                    ActivatePassive = True
+                elif Effect.Type == "Offensive":
+                    if Die.type == "Slash" or Die.type == "Blunt" or Die.type == "Pierce":
+                        ActivatePassive = True
+                elif Effect.Type == "Defensive":
+                    if Die.type == "Evade" or Die.type == "Block":
+                        ActivatePassive = True
+                elif Effect.Type == "Slash":
+                    if Die.type == "Slash":
+                        ActivatePassive = True
+                elif Effect.Type == "Blunt":
+                    if Die.type == "Blunt":
+                        ActivatePassive = True
+                elif Effect.Type == "Pierce":
+                    if Die.type == "Pierce":
+                        ActivatePassive = True
+                elif Effect.Type == "Block":
+                    if Die.type == "Block":
+                        ActivatePassive = True
+                elif Effect.Type == "Evade":
+                    if Die.type == "Evade":
+                        ActivatePassive = True
+                        
+                if ActivatePassive:
+                    Chance2 = random.randint(Effect.Min, Effect.Max)
+                    Chance2 *= Effect.Modifier
+                    Modifier += Chance2
                     
-            elif Die.type == "Evade" or Die.type == "Block":
-                if Effect.name == "Endurance":
-                    Modifier += Effect.Count
-                elif Effect.name == "Disarm":
-                    Modifier -= Effect.Count
+                    
+                
                     
         if Modifier != 0:
             Die.MinModifier += Modifier
@@ -3428,7 +4023,6 @@ def TriggerDieEffect(CombatDie,TriggerCharacter,EnemyCharacter):
     #Example effect 3Bleed
     print("triggering additional effect")
     AdditionalEffect = CombatDie.Effect
-    StartChar = AdditionalEffect[0:1]
     EffectTarget = CombatDie.Target
     Potency = 1
     SelfSpeedDie = None
@@ -3437,8 +4031,9 @@ def TriggerDieEffect(CombatDie,TriggerCharacter,EnemyCharacter):
         SelfSpeedDie = app.ActingDice[0]
     elif len(app.ActingDice) > 0 and app.ActingDice[0].TargetDie != None:
         SelfSpeedDie = app.ActingDice[0].TargetDie
-    
-    if StartChar.isdigit():# == "2" or StartChar == "3" or StartChar == "4"): #expand later once that much burn bleed ect?
+        
+    StartChar = AdditionalEffect[0:1]
+    if StartChar.isdigit():
         Potency = int(StartChar)
         AdditionalEffect = AdditionalEffect[1:]
         
@@ -3446,17 +4041,14 @@ def TriggerDieEffect(CombatDie,TriggerCharacter,EnemyCharacter):
         print("lol this is complex so WIP")
         
     NextTurnActivate = False
-    StartChar = AdditionalEffect[0:4]
-    if StartChar == "Next":
+    if AdditionalEffect.startswith("Next"):
         NextTurnActivate = True
         AdditionalEffect = AdditionalEffect[4:]
         
-    StartChar = AdditionalEffect[0:6]
-    if StartChar == "Reduce":
+    if AdditionalEffect.startswith("Reduce"):
         AlterVal = True
         Potency *= -1
-    StartChar = AdditionalEffect[0:8]
-    if StartChar == "Increase":
+    elif AdditionalEffect.startswith("Increase"):
         AlterVal = True
 
     print("adding additional effect " + AdditionalEffect + " with potency " + str(Potency))
@@ -3486,6 +4078,8 @@ def TriggerDieEffect(CombatDie,TriggerCharacter,EnemyCharacter):
         if AdditionalEffect == "Gain Light":
             for count in range(Potency):
                 GainLight(TriggerCharacter)
+        elif AdditionalEffect == "Regain Health":
+            HealCharacter(TriggerCharacter,Potency)
         elif AdditionalEffect == "Increase" or AdditionalEffect == "Reduce":
             Target.MinModifier += Potency
             Target.MaxModifier += Potency
@@ -3497,12 +4091,11 @@ def TriggerDieEffect(CombatDie,TriggerCharacter,EnemyCharacter):
 def ActivateCardAbility(Effect,Die):
     
     AdditionalEffect = Effect
-    StartChar = AdditionalEffect[0:6]
     EffectTarget = "Self"
     Potency = 1
     IsStatusEffect = False
     
-    if StartChar == "Effect":
+    if AdditionalEffect.startswith("Effect"):
         IsStatusEffect = True
         AdditionalEffect = AdditionalEffect[6:]
         
@@ -3516,21 +4109,23 @@ def ActivateCardAbility(Effect,Die):
     elif StartChar == "X":
         print("lol this is complex so WIP")
         
-    StartChar = AdditionalEffect[0:3]
-    if StartChar == "All":
+    if AdditionalEffect.startswith("All"):
         AdditionalEffect = AdditionalEffect[3:]
-        StartChar = AdditionalEffect[0:7]
-        if StartChar == "Players":
+        if AdditionalEffect.startswith("Players"):
             AdditionalEffect = AdditionalEffect[7:]
-            EffectTarget = "AllPlayers"
-        StartChar = AdditionalEffect[0:7]
-        if StartChar == "Enemies":
+            if Die.ConnectedCharacter.ControlledByPlayer:
+                EffectTarget = "AllPlayers"
+            else:
+                EffectTarget = "AllEnemies"
+        elif AdditionalEffect.startswith("Enemies"):
             AdditionalEffect = AdditionalEffect[7:]
-            EffectTarget = "AllEnemies"
+            if Die.ConnectedCharacter.ControlledByPlayer:
+                EffectTarget = "AllEnemies"
+            else:
+                EffectTarget = "AllPlayers"
         
     NextTurnActivate = False
-    StartChar = AdditionalEffect[0:4]
-    if StartChar == "Next":
+    if AdditionalEffect.startswith("Next"):
         NextTurnActivate = True
         AdditionalEffect = AdditionalEffect[4:]
         
@@ -3541,7 +4136,9 @@ def ActivateCardAbility(Effect,Die):
         if AdditionalEffect == "Gain Light":
             for count in range(Potency):
                 GainLight(EffectTarget)
-        
+        elif AdditionalEffect == "Regain Health":
+            HealCharacter(EffectTarget,Potency)
+                
         elif IsStatusEffect:
             for count in range(Potency):
                 AddStatusEffect(EffectTarget,AdditionalEffect,NextTurnActivate)
@@ -3550,6 +4147,8 @@ def ActivateCardAbility(Effect,Die):
             if AdditionalEffect == "Gain Light":
                 for count in range(Potency):
                     GainLight(Character)
+            elif AdditionalEffect == "Regain Health":
+                HealCharacter(Character,Potency)
             
             elif IsStatusEffect:
                 for count in range(Potency):
@@ -3557,7 +4156,11 @@ def ActivateCardAbility(Effect,Die):
                     
     elif EffectTarget == "AllEnemies":
         print("wip")
-        for Character in FightingCharacters - PlayerCharacters:
+        EnemyList = list(AllFightingCharacters)
+        for Character in PlayerCharacters:
+            if Contains(EnemyList,Character):
+                EnemyList.remove(Character)
+        for Character in EnemyList:
             if AdditionalEffect == "Gain Light":
                 for count in range(Potency):
                     GainLight(Character)
@@ -3565,8 +4168,125 @@ def ActivateCardAbility(Effect,Die):
             elif IsStatusEffect:
                 for count in range(Potency):
                     AddStatusEffect(Character,AdditionalEffect,NextTurnActivate)
-            
+      
+def CreateAbnormailyPage(name,Level,Positive,SingleTarget,Description,Effect,List):
     
+    AbnormailyPage = Group()
+    AbnormailyPage.name = name
+    AbnormailyPage.Level = Level
+    AbnormailyPage.Positive = Positive
+    AbnormailyPage.SingleTarget = SingleTarget
+    AbnormailyPage.Description = Description
+    AbnormailyPage.Effect = Effect
+    List.append(AbnormailyPage)
+
+#brick
+#turn into the actual passive for character
+def AddPassiveEffect(Character,Passive):
+    PassiveEffect = Group()
+    effect = Passive
+    PassiveEffect.Trigger = None
+    PassiveEffect.Type = None
+    PassiveEffect.Modifier = 0
+    PassiveEffect.Min = 0
+    PassiveEffect.Max = 0
+    PassiveEffect.DamageTypeStagger = False
+    
+    PassiveEffect.RemovalTrigger = None
+    PassiveEffect.Removal = "Full"
+    PassiveEffect.name = effect
+    PassiveEffect.Count = 1
+    PassiveEffect.BaseEffect = False
+    PassiveEffect.Exceptional = True
+    PassiveEffect.Icon = None
+    
+    CreatePassive = False
+    if effect.startswith("Create Passive"):
+        effect = effect[14:]
+        PassiveEffect.Exceptional = True
+        
+    elif Passive == "Pale Hands":
+        PassiveEffect.Trigger = "Dealt"
+        PassiveEffect.Type = "All"
+    elif Passive == "Scars":
+        PassiveEffect.Trigger = "Recieved"
+        PassiveEffect.Type = "All"
+        
+    if PassiveEffect.Icon == None:
+        PassiveEffect.Icon = Circle(0,0,10,fill = "yellow",border = "red")
+        PassiveEffect.add(PassiveEffect.Icon)
+        
+    PassiveEffect.Text = Label("1",10,10)
+    PassiveEffect.add(PassiveEffect.Text)
+    
+    PassiveEffect.visible = False
+    
+    if effect.startswith("Dealt"):
+        PassiveEffect.Trigger = "Dealt"
+        effect = effect[5:]
+    elif effect.startswith("Rolled"):
+        PassiveEffect.Trigger = "Rolled"
+        effect = effect[6:]
+    elif effect.startswith("Recieved"):
+        PassiveEffect.Trigger = "Recieved"
+        effect = effect[8:]
+    if PassiveEffect.Trigger == None:
+        print("Things are breaking? no trigger?")
+        
+    if effect.startswith("Defensive"):
+        PassiveEffect.Type = "Defensive"
+        effect = effect[9:]
+    elif effect.startswith("Offensive"):
+        PassiveEffect.Type = "Offensive"
+        effect = effect[9:]
+    elif effect.startswith("All"):
+        PassiveEffect.Type = "All"
+        effect = effect[3:]
+    elif effect.startswith("Pierce"):
+        PassiveEffect.Type = "Pierce"
+        effect = effect[6:]
+    elif effect.startswith("Slash"):
+        PassiveEffect.Type = "Slash"
+        effect = effect[5:]
+    elif effect.startswith("Blunt"):
+        PassiveEffect.Type = "Blunt"
+        effect = effect[5:]
+    elif effect.startswith("Block"):
+        PassiveEffect.Type = "Block"
+        effect = effect[5:]
+    elif effect.startswith("Evade"):
+        PassiveEffect.Type = "Evade"
+        effect = effect[5:]
+        
+
+    if PassiveEffect.Trigger == "Rolled":
+        if effect.startswith("-"):
+            PassiveEffect.Modifier = -1
+            effect = effect[1:]
+        elif effect.startswith("+"):
+            PassiveEffect.Modifier = 1
+            effect = effect[1:]
+    
+        StartChar = effect[0:1]
+        if StartChar.isdigit():
+            PassiveEffect.Min = int(StartChar)
+            effect = effect[2:]
+        StartChar = effect[0:1]
+        if StartChar.isdigit():
+            PassiveEffect.Max = int(StartChar)
+            effect = effect[1:]
+    elif PassiveEffect.Trigger == "Dealt" or PassiveEffect.Trigger == "Recieved":
+        if effect.startswith("Stagger"):
+            PassiveEffect.DamageTypeStagger = True
+            effect = effect[7:]
+        elif effect.startswith("Damage"):
+            PassiveEffect.DamageTypeStagger = False
+            effect = effect[6:]
+
+    #EffectIcon.Trigger = None
+    Character.StatusEffects.append(PassiveEffect)
+    Character.add(PassiveEffect)
+    UpdateStatusEffects(Character)
     
 def AddStatusEffect(Target,Effect,NextTurnActivate):
     #First check if contains, otherwise create
@@ -3593,13 +4313,13 @@ def AddStatusEffect(Target,Effect,NextTurnActivate):
         EffectIcon.Removal = "Full"
         EffectIcon.name = Effect
         EffectIcon.Count = 1
+        EffectIcon.BaseEffect = True
         Symbol = None
         Symbol1 = None
         Symbol2 = None
         Symbol3 = None
         print("applying " + Effect)
         
-        EffectIcon.Text = Label("1",10,10)
         if Effect == "Burn":
             Symbol = Circle(0,0,10,fill = "yellow",border = "red")
             EffectIcon.Trigger = "EndTurn"
@@ -3667,6 +4387,7 @@ def AddStatusEffect(Target,Effect,NextTurnActivate):
         if Symbol3 != None:
             EffectIcon.add(Symbol3)
         
+        EffectIcon.Text = Label("1",10,10)
         EffectIcon.add(EffectIcon.Text)
             
         EffectIcon.IsNextTurn = False
@@ -3683,7 +4404,13 @@ def AddStatusEffect(Target,Effect,NextTurnActivate):
             
     
     UpdateStatusEffects(Target)
-    
+
+def HealCharacter(RecievingCharacter,Potency):
+    if RecievingCharacter.Health + Potency >= RecievingCharacter.MaxHealth:
+        RecievingCharacter.Health = RecievingCharacter.MaxHealth
+    else:
+        RecievingCharacter.Health += Potency
+
 def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
     
     if Damage <= 0:
@@ -3696,14 +4423,135 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
     StaggerEffectModifier = 0
     SmokeModifier = 1
     for Effect in RecievingCharacter.StatusEffects:
-        if Effect.name == "Protection":
-            HealthEffectModifier -= Effect.Count
-        elif Effect.name == "Stagger Protection":
-            StaggerEffectModifier -= Effect.Count
-        elif Effect.name == "Fragile":
-            HealthEffectModifier += Effect.Count
-        elif Effect.name == "Smoke":
-            SmokeModifier = 1 + (Effect.Count/10)
+        if Effect.BaseEffect:
+            if Effect.name == "Protection":
+                HealthEffectModifier -= Effect.Count
+            elif Effect.name == "Stagger Protection":
+                StaggerEffectModifier -= Effect.Count
+            elif Effect.name == "Fragile":
+                HealthEffectModifier += Effect.Count
+            elif Effect.name == "Smoke":
+                SmokeModifier = 1 + (Effect.Count/10)
+        elif Effect.Trigger == "Recieved":
+            
+            ActivatePassive = False
+            if Effect.Type == "All":
+                ActivatePassive = True
+            elif Effect.Type == "Offensive":
+                if Die.type == "Slash" or type == "Blunt" or type == "Pierce":
+                    ActivatePassive = True
+            elif Effect.Type == "Defensive":
+                if type == "Evade" or type == "Block":
+                    ActivatePassive = True
+            elif Effect.Type == "Slash":
+                if type == "Slash":
+                    ActivatePassive = True
+            elif Effect.Type == "Blunt":
+                if type == "Blunt":
+                    ActivatePassive = True
+            elif Effect.Type == "Pierce":
+                if type == "Pierce":
+                    ActivatePassive = True
+            elif Effect.Type == "Block":
+                if type == "Block":
+                    ActivatePassive = True
+            elif Effect.Type == "Evade":
+                if type == "Evade":
+                    ActivatePassive = True
+                        
+            if ActivatePassive:
+                Chance2 = random.randint(Effect.Min, Effect.Max)
+                Chance2 *= Effect.Modifier
+                if Effect.DamageTypeStagger == True:
+                    StaggerEffectModifier += Chance2
+                else:
+                    HealthEffectModifier += Chance2
+                    
+            #exceptions, shouldnt break with 0 min 0 max 0 mod
+            if Effect.name == "Scars":
+                Chance2 = random.randint(1, 5)
+                if Chance2 == 5:
+                    SmokeModifier = 0 #a jank fix but works
+                    
+                #20% negation chance
+                    
+    for Effect in DealingCharacter.StatusEffects:  
+        if Effect.Trigger == "Dealt":
+            ActivatePassive = False
+            if Effect.Type == "All":
+                ActivatePassive = True
+            elif Effect.Type == "Offensive":
+                if Die.type == "Slash" or type == "Blunt" or type == "Pierce":
+                    ActivatePassive = True
+            elif Effect.Type == "Defensive":
+                if type == "Evade" or type == "Block":
+                    ActivatePassive = True
+            elif Effect.Type == "Slash":
+                if type == "Slash":
+                    ActivatePassive = True
+            elif Effect.Type == "Blunt":
+                if type == "Blunt":
+                    ActivatePassive = True
+            elif Effect.Type == "Pierce":
+                if type == "Pierce":
+                    ActivatePassive = True
+            elif Effect.Type == "Block":
+                if type == "Block":
+                    ActivatePassive = True
+            elif Effect.Type == "Evade":
+                if type == "Evade":
+                    ActivatePassive = True
+                        
+            if ActivatePassive:
+                Chance2 = random.randint(Effect.Min, Effect.Max)
+                Chance2 *= Effect.Modifier
+                if Effect.DamageTypeStagger == True:
+                    StaggerEffectModifier += Chance2
+                else:
+                    HealthEffectModifier += Chance2
+                    
+            #exceptions, shouldnt break with 0 min 0 max 0 mod                    
+            if Effect.name == "Pale Hands":
+                #adds effect and removals all from all else, 3 stax = 3-10 stagger 
+                for Character in AllFightingCharacters:
+                    if Character != RecievingCharacter: #dont check me
+                        for Suspect in Character.StatusEffects: #custom contains bc they are not actually the same across all
+                            if Suspect.name == "PaleCombo":
+                                RemoveStatusEffect(Suspect,Character.StatusEffects)
+                FoundCombo = None
+                print("length of status to look through is: " + str(len(RecievingCharacter.StatusEffects)))
+                for FindIt in RecievingCharacter.StatusEffects:
+                    print("Findit is: " + FindIt.name)
+                    if FindIt.name == "PaleCombo":
+                        FoundCombo = FindIt
+                        
+                if FoundCombo != None:
+                    print("increased pale combo")
+                    FoundCombo.Count += 1
+                    UpdateStatusEffects(RecievingCharacter)
+                    if FoundCombo.Count >= 3:
+                        Chance2 = random.randint(3, 10)
+                        StaggerEffectModifier += Chance2
+                        RemoveStatusEffect(FoundCombo,RecievingCharacter.StatusEffects)
+                        UpdateStatusEffects(RecievingCharacter)
+                        
+                else:
+                    print("added pale combo")
+                    EffectIcon = Group()
+                    EffectIcon.Trigger = None
+                    EffectIcon.RemovalTrigger = None
+                    EffectIcon.Removal = "Full"
+                    EffectIcon.name = "PaleCombo"
+                    EffectIcon.Count = 1
+                    EffectIcon.BaseEffect = False
+                    Symbol = Rect(0,0,15,15,fill="white",border = "black")
+                    EffectIcon.add(Symbol)
+                    EffectIcon.Text = Label("1",10,10)
+                    EffectIcon.add(EffectIcon.Text)
+                    RecievingCharacter.StatusEffects.append(EffectIcon)
+                    print("length of status is now: " + str(len(RecievingCharacter.StatusEffects)))
+                    RecievingCharacter.add(EffectIcon)
+                    UpdateStatusEffects(RecievingCharacter)
     
     FinalPhysDamage = int(((Damage * HealthResModifier) + HealthEffectModifier) * SmokeModifier)
     FinalStaggerDamage = int(Damage * StaggerResModifier) + StaggerEffectModifier
@@ -3712,6 +4560,9 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
         print("Fully negated phys dmg")
     else:
         RecievingCharacter.Health -= FinalPhysDamage
+        if RecievingCharacter.Health <= 0:
+            for Count in range(3):
+                AddEmotion(DealingCharacter,True)
         for count in range(FinalPhysDamage):
             CreateParticle(RecievingCharacter.CharacterSprite.centerX,RecievingCharacter.CharacterSprite.centerY,5,"red")
         
@@ -3774,52 +4625,54 @@ def Stagger(Character):
         if Die.HeldPage != None:
             #RestorePage(Die.HeldPage)
             Die.HeldPage.visible = False
-            UntargetSpeedDie(Die)
+            #UntargetSpeedDie(Die)
+            Die.ConnectedCharacter.Light += Die.HeldPage.cost
+            ResolveAndRemovePage(Die)
+            
             if Die.TargettingLine != None:
                 Die.TargettingLine.visible = False
         Die.TargetDie = None
         
 def KillCharacter(Character):
     print("killing: " + Character.name)
-    Character.visible = False
     
+    DissapearCharacter(Character, True)
+    
+    #hides the hand library and graveyard
     for Card in (Character.Library + Character.Hand + Character.Graveyard):
         Card.visible = False
     
+    #removes dice from their ally list for targetting
     for DeadDie in Character.SpeedDice:
         DeadSpeedDice.append(DeadDie)
-        
-        if DeadDie.TargettingLine != None:
-            DeadDie.TargettingLine.visible = False
         
         if Character.ControlledByPlayer:
             PlayerSpeedDice.remove(DeadDie)
             print("removing a player die")
         else:
             EnemySpeedDice.remove(DeadDie)
-            #got extra removed some how?
-        
-        ClearExtraDice(Character)
-        
-    RemovalList = list(Character.NextTurnStatusEffects)
-    for GoneEffect in RemovalList:
-        RemoveStatusEffect(GoneEffect,Character.NextTurnStatusEffects)
-        
-    RemovalList = list(Character.StatusEffects)
-    for GoneEffect in RemovalList:
-        RemoveStatusEffect(GoneEffect,Character.StatusEffects)
-        
-    UpdateStatusEffects(Character)
-        
+    
+    #removed from fight
     AllFightingCharacters.remove(Character)
     
+    #hides the info board
     Character.AdditionalInfoBoard.visible = False
     
+    #death particles
     for count in range(30):
         CreateParticle(Character.CharacterSprite.centerX,Character.CharacterSprite.centerY,8,"red")
     
+    #adds emotions to allies
+    for FightCharacter in AllFightingCharacters:
+        if Character.ControlledByPlayer == FightCharacter.ControlledByPlayer:
+            for Count in range(3):
+                AddEmotion(FightCharacter,False)
+    
+    #adds to dead
     DeadCharacters.append(Character)
+    #removes cards from hand and graveyard to put in library
     ResetCharacterLibrary(Character)
+    #checks if all of one side died
     if len(PlayerSpeedDice) == 0:
         FightEnd(False)
     elif len(EnemySpeedDice) == 0:
@@ -3854,6 +4707,7 @@ def UpdateBars(Character):
         Character.StaggerBar.opacity = 0
         Character.StaggerBarText.opacity = 0
         Character.Staggered = True
+        Stagger(Character)
         for Die in Character.SpeedDice:
             Die.TargetDie = None
         for Card in (Character.Library + Character.Hand + Character.Graveyard):
@@ -3878,6 +4732,121 @@ def UpdateStatusEffects(Character):
         Effect.centerY = StartY
         Effect.Text.value = str(Effect.Count)
         StartX += 20
+        
+def UpdateDamageRange(Die):
+    
+    if Die.min + Die.MinModifier > Die.max + Die.MaxModifier:
+        if Die.max + Die.MaxModifier < 0:
+            Die.DamageRangeText.value = str(0) + "-" + str(0)
+        else:
+            Die.DamageRangeText.value = str(Die.max + Die.MaxModifier) + "-" + str(Die.max + Die.MaxModifier)
+    else:
+        if Die.max + Die.MaxModifier < 0:
+
+            Die.DamageRangeText.value = str(0) + "-" + str(0)
+        else:
+            if Die.min + Die.MinModifier < 0:
+                Die.DamageRangeText.value = str(0) + "-" + str(Die.max + Die.MaxModifier)
+            else:
+                Die.DamageRangeText.value = str(Die.min + Die.MinModifier) + "-" + str(Die.max + Die.MaxModifier)
+
+def ParseForDescription(String,Trigger,Target):
+    
+    OriginalText = String
+    Description = ""
+    Potency = 1
+    NextTurnActivate = False
+    Description += Trigger
+    
+    if OriginalText.startswith("Effect"):
+        OriginalText = OriginalText[6:]
+        
+    if OriginalText.startswith("Reduce"):
+        OriginalText = OriginalText[6:]
+
+    StartChar = OriginalText[0:1]
+    if StartChar.isdigit():
+        Potency = int(StartChar)
+        OriginalText = OriginalText[1:]
+        
+    if OriginalText.startswith("All"):
+        OriginalText = OriginalText[3:]
+        if OriginalText.startswith("Players"):
+            OriginalText = OriginalText[7:]
+            Target = "AllPlayers"
+        if OriginalText.startswith("Enemies"):
+            OriginalText = OriginalText[7:]
+            Target = "AllEnemies"
+        
+    
+    if OriginalText.startswith("Next"):
+        NextTurnActivate = True
+        OriginalText = OriginalText[4:]
+
+    if Target == "Enemy":
+        Description += " Inflict"
+    elif Target == "Self":
+        Description += " Gain"
+    elif Target == "AllPlayers":
+        Description += " Give all Allies"
+        
+    if OriginalText == "Gain Light":
+        Description += " " + str(Potency) + " Light"
+    else:
+        Description += " " + str(Potency) + " " + OriginalText
+    if NextTurnActivate:
+        Description += " Next Turn"
+    else:
+        Description += " This Turn"
+    
+    return Description
+    
+def CardPartition(String):
+    PartitionedDescription = []
+    if len(String) > 14:
+        while len(String) > 14:
+            PartDescription = String[0:10]
+            String = String[10:]
+            for ExtraPiece in range(4):
+                if not String.startswith(" "):
+                    PartDescription = PartDescription + String[0:1]
+                    String = String[1:]
+                    
+            Piece = Label(PartDescription,0,0,fill = "yellow",size = 8)
+            PartitionedDescription.append(Piece)
+
+        FinalPiece = Label(String,0,0,fill = "yellow",size = 8)
+        PartitionedDescription.append(FinalPiece)
+    else:
+        FinalPiece = Label(String,0,0,fill = "yellow",size = 8)
+        PartitionedDescription.append(FinalPiece)
+        
+    return PartitionedDescription
+
+def RefreshResistances(Character):
+    
+    index = 0
+    for Text in Character.AdditionalInfoBoard.TextList:
+        ResValue = Character.ResistanceList[index]
+        ResTextVal = ""
+        if ResValue == 2:
+            ResTextVal = "Fatal"
+        elif ResValue == 1:
+            ResTextVal = "Weak"
+        elif ResValue == 0:
+            ResTextVal = "Normal"
+        elif ResValue == -1:
+            ResTextVal = "Endured"
+        elif ResValue == -2:
+            ResTextVal = "Ineffective"
+        elif ResValue == -3:
+            ResTextVal = "Immune"
+        else:
+            print("MASSIVE ERROR failed to find type sprite resistance 2")
+        
+        Text.value = ResTextVal
+        
+        index += 1
 
 def ResetAllCharacterPositions():
     print("resetting characters")
@@ -3892,8 +4861,9 @@ def ResetAllCharacterPositions():
             UpdateBars(Character)
         elif Character.Stagger <= 0:
             Character.ClearStaggered = True
-        
-        
+            
+        CheckForEmotionLevelup(Character)
+            
         ShowCharacterUI(Character)
         
         if Character.Staggered != True:
@@ -3914,7 +4884,7 @@ def ResetAllCharacterPositions():
             
         RemovalList = []
         
-        for StatusEffect in Character.StatusEffects:
+        for StatusEffect in Character.StatusEffects: #end of turn resolving effects
             if StatusEffect.Trigger == "EndTurn":
                 Character.Health -= StatusEffect.Count
             if StatusEffect.RemovalTrigger == "EndTurn":
@@ -3944,6 +4914,126 @@ def ResetAllCharacterPositions():
         UpdateStatusEffects(Character)
                 
         FixUpCharacter(Character)
+        
+    NumOfCharacters = 0
+    TotalPositive = 0
+    TotalNegative = 0
+    for Character in AllFightingCharacters:
+        if Character.ControlledByPlayer:
+            NumOfCharacters += 1
+            AllCoins = Character.EmotionCoins + Character.BankedEmotionCoins
+            for Coin in AllCoins:
+                if Coin == True:#checks if the coins is positive
+                    TotalPositive += 1
+                else:
+                    TotalNegative += 1
+    
+    EmotionalRequirement = 3 * NumOfCharacters
+    index = 1
+    for Count in range(app.CurrentTeamEmotionLevel): #adds additional req accounting for banked
+        EmotionalRequirement += NumOfCharacters * (3 + 2 * index)
+        index += 1
+    print("emotional req for team level is " + str(EmotionalRequirement))
+    if TotalPositive + TotalNegative >= EmotionalRequirement:
+        print("Team emotional level up to " + str(app.CurrentTeamEmotionLevel + 1))
+        LevelUpTeamEmotionLevel(TotalPositive,TotalNegative)
+    
+
+def CheckForEmotionLevelup(Character):
+    
+    if Character.EmotionLevel == 0 and len(Character.EmotionCoins) >= len(Character.EmotionBarList):
+        EmotionLevelUp(Character)
+    elif Character.EmotionLevel == 1 and len(Character.EmotionCoins) >= len(Character.EmotionBarList):
+        EmotionLevelUp(Character)
+    elif Character.EmotionLevel == 2 and len(Character.EmotionCoins) >= len(Character.EmotionBarList):
+        #add a die
+        EmotionLevelUp(Character)
+    elif Character.EmotionLevel == 3 and len(Character.EmotionCoins) >= len(Character.EmotionBarList):
+        #add a die
+        EmotionLevelUp(Character)
+    elif Character.EmotionLevel == 4 and len(Character.EmotionCoins) >= len(Character.EmotionBarList):
+        #Characters draw extra
+        EmotionLevelUp(Character)
+        
+def LevelUpTeamEmotionLevel(TotalPositive,TotalNegative):
+    Chance = random.randint(0,TotalPositive + TotalNegative)
+    EmotionOptions = app.CurrentFloor.EmotionPayoffs[app.CurrentTeamEmotionLevel]
+    if len(EmotionOptions) > 0:
+        DisplayedOptions = []
+        PositiveList = []
+        for Option in EmotionOptions:
+            if Option.Positive:
+                PositiveList.append(Option)
+        NegativeList = []
+        for Option in EmotionOptions:
+            if not Option.Positive:
+                NegativeList.append(Option)
+
+        for RunItThrice in range(3):
+            if len(PositiveList) <= 0 and len(NegativeList) <= 0:
+                print("failed to find abno")
+            elif (Chance <= TotalPositive and len(PositiveList) <= 0) or len(NegativeList) <= 0: #checks if positive or a list is running out
+                print("positive abno")
+                Chance2 = random.randint(0,len(PositiveList) - 1)
+                DisplayedOptions.append(PositiveList[Chance2])
+                PositiveList.remove(PositiveList[Chance2])
+                
+            else:
+                print("negative abno")
+                Chance2 = random.randint(0,len(NegativeList) - 1)
+                DisplayedOptions.append(NegativeList[Chance2])
+                NegativeList.remove(NegativeList[Chance2])
+        
+        DisplayAbnoOptions(DisplayedOptions)
+        
+    app.CurrentTeamEmotionLevel += 1
+
+def DisplayAbnoOptions(ListedOptions):
+    NumOfOptions = len(ListedOptions)
+    print("this many options of abno pages: " + str(NumOfOptions))
+    app.PlayerConfirmStage = 7
+    PageWidth = 400 * app.XScreenDialation / NumOfOptions
+    StartX = 0
+    Background = Rect(0,0,400 * app.XScreenDialation,400 * app.YScreenDialation)
+    Background.Text = Label("",0,0)
+    Background.Type = "Locked"
+    app.TemporaryButtons.append(Background)
+
+    for AbnoPage in ListedOptions:
+        Page = Group()
+        Outline = Rect(StartX,50 * app.YScreenDialation,PageWidth,300 * app.YScreenDialation)
+        if AbnoPage.Positive:
+            Outline.fill = "green"
+            Outline.border = "darkGreen"
+        else:
+            Outline.fill = "red"
+            Outline.border = "darkRed"
+        Outline.borderWidth = 8
+        Page.add(Outline)
+        Title = Label(AbnoPage.name,Outline.centerX,100 * app.YScreenDialation,size = 20 * app.XScreenDialation)
+        Page.add(Title)
+        TargetTitle = Label("Idk Target",Outline.centerX,130 * app.YScreenDialation,size = 18 * app.XScreenDialation)
+        if AbnoPage.SingleTarget:
+            TargetTitle.value = "Single target"
+        else:
+            TargetTitle.value = "World Effect"
+        Outline.Text = Group(Title,TargetTitle)
+        PartitionedText = CardPartition(AbnoPage.Description)
+        StartY = 160 * app.YScreenDialation
+        for Line in PartitionedText:
+            #Textline = Label(Line,Outline.centerX,StartY)
+            Line.size = 16 * app.YScreenDialation
+            Line.centerX = Outline.centerX
+            Line.centerY = StartY
+            StartY += 12 * app.YScreenDialation
+            Page.add(Line)
+            Outline.Text.add(Line)
+        
+        Outline.Type = "Page"
+        Outline.ConnectedPage = AbnoPage
+        app.TemporaryButtons.append(Outline)
+        StartX += PageWidth
+
 
 def RemoveStatusEffect(Effect,List):
     Effect.visible = False
@@ -4016,15 +5106,29 @@ def CreateParticle(x,y,size,color):
     Particle.YVel = random.randint(-10, 10)
     Particle.Fade = 2
     app.FadingParticles.append(Particle)
-        
-#emotions, also maybe new cards / new fights reminder icons for main menu
-#make player different from enemys, add instructions, make set enemy positions template
-#could add a setpositions definition to consolidate, but would make things slower bc running through more so idk
-#maybe create a seperate thing for create rat and then have the rats be with the rat icon
-#fix fixupcharacter is an acceptable bug for now
-#player status effects are sticking around after players lose
-#next stages are scorched girl and hook office
     
-        
+def UpdateResolution():
+    Background = Rect(0,0,app.width,app.height,fill="burlywood")
+    app.XScreenDialation = app.width / 400
+    app.YScreenDialation = app.height / 400
+    app.BlackScreen = Rect(0,0,app.width,app.height,visible = False)
+    app.GamoverText = Label("Game Over",app.width/2,app.height/2, fill = "white",visible = False, size = 20)
+    app.WinText = Label("You Win",app.width/2,app.height/2, fill = "white",visible = False, size =20)
+    app.ContinueText = Label("Press Space To Continue",app.width/2,app.height/2 + 50 * app.YScreenDialation, fill = "white",visible = False)
+
+#right now things;
+#problem with emotion level ups not occuring even with 3 coins sometimes
+# run AddPassiveEffect for all attributed things, and make a system for assigning them from emotional levels
+#next stages are scorched girl and hook office, into yesod unlock and chef office, into forsaken murderer and lulu office
+
+#far off
+#have character's page be clickable to go into attribution
+
+#polish
+#also maybe new card / new fight reminder icons for main menu
+#add instructions, make set positions template
+#fix fixupcharacter is an acceptable bug for now
+#also add a rules page, and maybe eventually a save code system
+    
 # type python LibraryOfRuin.py to run
 cmu_graphics.run()

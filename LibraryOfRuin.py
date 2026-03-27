@@ -5129,6 +5129,7 @@ def UpdateResolution():
 #add instructions, make set positions template
 #fix fixupcharacter is an acceptable bug for now
 #also add a rules page, and maybe eventually a save code system
-    
-# type python LibraryOfRuin.py to run
+
+#also cards can be found easily on https://projectmoon.miraheze.org/wiki/Cards_(Library_of_Ruina)
+# type: python LibraryOfRuin.py to run
 cmu_graphics.run()

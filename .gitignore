@@ -1,4 +1,5 @@
 /cmu_graphics
+.vs/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

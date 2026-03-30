@@ -3137,7 +3137,7 @@ def Startup():
             Floor.EnlightenmentUnlocked = 5
         Floor.CurrentEmotionLevelCap = 1
         Floor.Unlocked = False
-        Floor.EmotionPayoffs = [[],[],[],[],[]] #the different levels 1-5 have containers
+        Floor.EmotionPayoffs = [[],[],[]] #the different levels 1-3 have containers
         app.Floors.append(Floor)
         
     app.Floors[0].Unlocked = True
@@ -5195,7 +5195,13 @@ def CheckForEmotionLevelup(Character):
         
 def LevelUpTeamEmotionLevel(TotalPositive,TotalNegative):
     Chance = random.randint(0,TotalPositive + TotalNegative)
-    EmotionOptions = app.CurrentFloor.EmotionPayoffs[app.CurrentTeamEmotionLevel]
+    #it is actually 3 levels not 5 with 1-2 = level 1  3-4 = level 2 5 = level3
+    if app.CurrentTeamEmotionLevel == 0 or app.CurrentTeamEmotionLevel == 1:
+        EmotionOptions = app.CurrentFloor.EmotionPayoffs[0]
+    elif app.CurrentTeamEmotionLevel == 2 or app.CurrentTeamEmotionLevel == 3:
+        EmotionOptions = app.CurrentFloor.EmotionPayoffs[1]
+    elif app.CurrentTeamEmotionLevel == 5:
+        EmotionOptions = app.CurrentFloor.EmotionPayoffs[2]
     if len(EmotionOptions) > 0:
         DisplayedOptions = []
         PositiveList = []
@@ -5369,4 +5375,4 @@ def UpdateResolution():
 
 #also cards can be found easily on https://projectmoon.miraheze.org/wiki/Cards_(Library_of_Ruina)
 # type: python LibraryOfRuin.py to run
-cmu_graphics.run() #runs fine without on home comp check school for same
+cmu_graphics.run() #runs fine without on home comp but needed for school comp

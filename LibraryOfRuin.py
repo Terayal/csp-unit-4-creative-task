@@ -2,14 +2,16 @@ from cmu_graphics import *
 #Library game???
 #lista becomes list because lista doesnt exista
 #I am switching to VS code fully because of file size problems on CMU
+# am running to shape count problems?
+app.setMaxShapeCount(40000)
 import random
 import math
 app.Startup = True
-app.Debug = False
+app.Debug = True
 app.PlayerConfirm = False
 app.PlayerConfirmStage = 0
-app.CardWidth = 120
-app.Xdisplace = 23
+app.CardWidth = 110
+app.Xdisplace = 18
 app.YStart = 40
 app.FontSizeModifier = 2
 app.MouseX = 0
@@ -473,6 +475,8 @@ def onKeyPress(key):
         if key == "escape":
             for Die in PlayerSpeedDice:
                 UntargetSpeedDie(Die)
+            print("hiding hand")
+            HideHand(Character)
         elif key == "space":
             #if app.PlayerConfirmStage == 0 or app.PlayerConfirmStage == 1 or app.PlayerConfirmStage == 2:
             app.PlayerConfirm = True
@@ -539,7 +543,7 @@ def onStep():
     elif app.InAFight:
         if app.PlayerConfirmStage == 1 or app.PlayerConfirmStage == 0:
             for Character in AllFightingCharacters:
-                if Character.Staggered or Character.Health <= 0:
+                if (not Character.Staggered and Character.Stagger <= 0) or Character.Health <= 0:
                     Stagger(Character)
                 if Character.Health <= 0:
                     KillCharacter(Character)
@@ -620,9 +624,11 @@ def onStep():
                 MoveToClashes()
                 
         elif app.PlayerConfirmStage == 3:
+            app.RoundNum += 1
             ResetAllCharacterPositions()
-            if app.PlayerConfirmStage != 7:
-                app.PlayerConfirmStage = 0
+            
+            #if app.PlayerConfirmStage != 7:
+            app.PlayerConfirmStage = 0
             
         #app.PausedForClash = False
         if (app.AutoProgressStagesForTesting or app.PlayerConfirmStage == 0) and not app.PlayerConfirm and app.PlayerConfirmStage != 10:
@@ -631,6 +637,7 @@ def onStep():
         if app.PlayerConfirm == True or app.AutoProgressStageTimer == 0:
             
             app.AutoProgressStageTimer = 10
+
             if app.PlayerConfirmStage == 0:
                 MoveToPageSelect()
                 print("confirm stage is " + str(app.PlayerConfirmStage))
@@ -1174,11 +1181,17 @@ def StartBattle(Fight):
 
         Character.Staggered = False
         Character.ClearStaggered = False
-        Character.Light = Character.MaxLight
+        if Character.StartingLight != None:
+            Character.Light = Character.StartingLight
+        else:
+            Character.Light = Character.MaxLight
+        FixLightSpritePositions(Character)
         ShuffleList(Character.Library)
         for drawing in range(4):
             DrawCard(Character)
             
+    app.RoundNum = 0
+
     ResetAllCharacterPositions()
 
 def SupplementLibrary(Character):
@@ -1340,8 +1353,12 @@ def FightEnd(Victory):
             
             Character.Staggered = False
             Character.ClearStaggered = False
-            Character.Light = Character.MaxLight
-            for drawing in range(5):
+            if Character.StartingLight != None:
+                Character.Light = Character.StartingLight
+            else:
+                Character.Light = Character.MaxLight
+            FixLightSpritePositions(Character)
+            for drawing in range(4):
                 DrawCard(Character)
                 
         ResetAllCharacterPositions()
@@ -1381,6 +1398,15 @@ def CheckForSpecialStageEndEvents(StageNum,FightNum,IsSpecial):
         if StageNum == 2 and FightNum == 2:
             if app.Floors[0].EnlightenmentUnlocked < 1:
                 app.Floors[0].EnlightenmentUnlocked = 1
+        elif StageNum == 2 and FightNum == 3:
+            if not app.Floors[1].Unlocked:
+                app.Floors[1].Unlocked = True
+        elif StageNum == 3 and FightNum == 1:
+            if app.Floors[1].EnlightenmentUnlocked < 1:
+                app.Floors[1].EnlightenmentUnlocked = 1
+        elif StageNum == 4 and FightNum == 1:
+            if not app.Floors[2].Unlocked:
+                app.Floors[2].Unlocked = True
     else:    #this is an elightenment stage    
         print("stage number is " + str(StageNum))
         if StageNum == 1 and app.CurrentFloor.CharactersUnlocked < 2:
@@ -1410,12 +1436,11 @@ def FixLightSpritePositions(Character):
             pass
     #print("We have this much active: " + str(ActiveLight))
     
-    #print(Character.LightSprites)
     for LightMote in Character.LightSprites:
         LightMote.centerX = Character.CharacterSprite.centerX + LightDisp
         LightMote.centerY = Character.CharacterSprite.centerY - 80
         LightDisp += 20
-        
+
         
         #print("We have this much light: " + str(Character.Light))
         #print("We have this much total: " + str(Character.MaxLight))
@@ -1502,6 +1527,7 @@ def FixUpCharacter(Character):
         StartX += 40
 
     Character.EmotionBar.EmotionLevelText.value = Character.EmotionLevel
+    FixLightSpritePositions(Character)
 
 
 def DisplayHand(Character, ThisDie):
@@ -1562,13 +1588,17 @@ def HideHand(Character):
 
 def CreateStoryStages():
     
+    #second act stages
+    #CreateChefStage()
+
+    #first act stages and abnos
     CreateRatsStage()
     CreateYunStage()
     CreateBrotherStage()
     CreateHookStage()
-    #CreateChefStage()
     
     CreateBloodBathStage()
+    CreateScorchedGirlStage()
     
     CreateStorySymbols()
 
@@ -1691,20 +1721,20 @@ def CreateHookStage():
 
 
     SpeedDiceList = []
-    CreateSpeedDie(1,3,SpeedDiceList)
-    DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Thrust","Wallop","Wallop","Preemptive Strike"])
-    ResistanceList = [2,0,1,2,0,1]
+    CreateSpeedDie(1,4,SpeedDiceList)
+    DeckList = CreateDeckList(["Track","Track","Wallop","Preemptive Strike","Mutilate","Mutilate","Rampage","Rampage"])
+    ResistanceList = [0,1,2,0,2,2]
     AttributedPassives = []
-    Hook1 = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Hook Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
+    Hook1 = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,2,18,7,ResistanceList,"Hook Fixer",Part.ListOfFighters,"Hook",AttributedPassives,None)
     
     print("Hok1 done")
     
     SpeedDiceList = []
-    CreateSpeedDie(1,2,SpeedDiceList)
-    DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Thrust","Wallop","Wallop","Preemptive Strike"])
-    ResistanceList = [0,1,2,0,1,2]
+    CreateSpeedDie(1,4,SpeedDiceList)
+    DeckList = CreateDeckList(["Track","Track","Wallop","Preemptive Strike","Mutilate","Mutilate","Rampage","Rampage"])
+    ResistanceList = [0,1,2,0,2,2]
     AttributedPassives = []
-    Hook2 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Hook Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
+    Hook2 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,2,18,7,ResistanceList,"Hook Fixer",Part.ListOfFighters,"Hook",AttributedPassives,None)
     
     print("Hook2 done")
     
@@ -1717,28 +1747,28 @@ def CreateHookStage():
     
     SpeedDiceList = []
     CreateSpeedDie(2,3,SpeedDiceList)
-    DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Commandeering"])
-    ResistanceList = [0,0,2,0,1,2]
+    DeckList = CreateDeckList(["Track","Track","Quickness","Preemptive Strike","Defend This!","Mutilate","Mutilate","Rampage"])
+    ResistanceList = [0,0,2,0,2,1]
     AttributedPassives = []
-    Naoki = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,21,10,ResistanceList,"Naoki",Part.ListOfFighters,"Yun",AttributedPassives)
+    Naoki = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,2,21,10,ResistanceList,"Naoki",Part.ListOfFighters,"Hook",AttributedPassives,None)
     
     print("Naoki done")
     
     SpeedDiceList = []
     CreateSpeedDie(1,3,SpeedDiceList)
-    DeckList = CreateDeckList(["Thrust","Wallop","Feelin' Good","Feelin' Good","Preperation","Preperation","Time for a Test","Time for a Test"])
-    ResistanceList = [0,1,0,2,1,0]
+    DeckList = CreateDeckList(["Track","Track","Quickness","Preemptive Strike","Overpower","Mutilate","Mutilate","Rampage"])
+    ResistanceList = [0,2,0,1,2,0]
     AttributedPassives = []
-    McCullin = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,22,9,ResistanceList,"McCullin",Part.ListOfFighters,"Yun",AttributedPassives)
+    McCullin = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,2,22,9,ResistanceList,"McCullin",Part.ListOfFighters,"Hook",AttributedPassives,None)
     
     print("McCullin done")
     
     SpeedDiceList = []
     CreateSpeedDie(1,3,SpeedDiceList)
-    DeckList = CreateDeckList(["Track","Track","Quickness","Feelin' Good","Preperation","Preperation","Time for a Test","Time for a Test"])
+    DeckList = CreateDeckList(["Track","Track","Quickness","Preemptive Strike","Goin' First","Mutilate","Mutilate","Rampage"])
     ResistanceList = [0,0,2,0,0,2]
     AttributedPassives = []
-    Taein = CreateCharacter(140,225,2,False,SpeedDiceList,DeckList,3,21,10,ResistanceList,"Taein",Part.ListOfFighters,"Yun",AttributedPassives)
+    Taein = CreateCharacter(140,225,2,False,SpeedDiceList,DeckList,2,21,10,ResistanceList,"Taein",Part.ListOfFighters,"Hook",AttributedPassives,None)
     
     print("Taein done")
 
@@ -1769,6 +1799,7 @@ def CreateHookStage():
     Battle.visible = False
     Battle.StageNum = 2
     Battle.IsSpecialStage = False
+    Battle.EmotionLevelCap = 2
     app.StoryStages.append(Battle)
 
 def CreateBrotherStage():
@@ -1826,7 +1857,7 @@ def CreateBrotherStage():
     DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","E-endure","E-endure","E-endure","B-blow It Up!","B-blow It Up!","C-chop It Off"])
     ResistanceList = [0,2,0,0,2,0]
     AttributedPassives = []
-    Mo = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,24,12,ResistanceList,"Mo",Part.ListOfFighters,"Brotherhood",AttributedPassives)
+    Mo = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,24,12,ResistanceList,"Mo",Part.ListOfFighters,"Brotherhood",AttributedPassives,None)
     
     print("Mo done")
     
@@ -1835,7 +1866,7 @@ def CreateBrotherStage():
     DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Quickness","E-endure","E-endure","D-dried Up","Only Live Once","Only Live Once"])
     ResistanceList = [0,1,0,1,2,0]
     AttributedPassives = []
-    Consta = CreateCharacter(140,225,2,False,SpeedDiceList,DeckList,3,22,6,ResistanceList,"Consta",Part.ListOfFighters,"Brotherhood",AttributedPassives)
+    Consta = CreateCharacter(140,225,2,False,SpeedDiceList,DeckList,3,22,6,ResistanceList,"Consta",Part.ListOfFighters,"Brotherhood",AttributedPassives,None)
     
     print("Consta done")
     
@@ -1844,7 +1875,7 @@ def CreateBrotherStage():
     DeckList = CreateDeckList(["C-charge Up!","C-charge Up!","E-endure","E-endure","D-dried Up","D-dried Up","C-chop It Off","C-chop It Off"])
     ResistanceList = [0,0,1,1,0,2]
     AttributedPassives = []
-    Arnold = CreateCharacter(190,275,2,False,SpeedDiceList,DeckList,3,22,10,ResistanceList,"Arnold",Part.ListOfFighters,"Brotherhood",AttributedPassives)
+    Arnold = CreateCharacter(190,275,2,False,SpeedDiceList,DeckList,3,22,10,ResistanceList,"Arnold",Part.ListOfFighters,"Brotherhood",AttributedPassives,None)
     
     print("Arnold done")
     
@@ -1873,6 +1904,7 @@ def CreateBrotherStage():
     Battle.visible = False
     Battle.StageNum = 3
     Battle.IsSpecialStage = False
+    Battle.EmotionLevelCap = 2
     app.StoryStages.append(Battle)
 
 def CreateYunStage():
@@ -1932,7 +1964,7 @@ def CreateYunStage():
     DeckList = CreateDeckList(["Evade","Evade","Light Attack","Light Attack","Light Defense","Light Defense",])
     ResistanceList = [2,1,0,2,1,0]
     AttributedPassives = []
-    Yun1 = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,15,7,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
+    Yun1 = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,15,7,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives,None)
     
     print("Yun1 done")
     
@@ -1941,7 +1973,7 @@ def CreateYunStage():
     DeckList = CreateDeckList(["Evade","Evade","Light Attack","Light Attack","Light Defense","Light Defense",])
     ResistanceList = [0,2,1,0,2,1]
     AttributedPassives = []
-    Yun2 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,15,7,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
+    Yun2 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,15,7,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives,None)
     
     print("Yun2 done")
     
@@ -1981,7 +2013,7 @@ def CreateYunStage():
     DeckList = CreateDeckList(["Thrust","Thrust","Preperation","Preperation","Wallop","Wallop","Struggle","Struggle"])
     ResistanceList = [0,1,2,0,1,2]
     AttributedPassives = []
-    Finn = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,2,18,6,ResistanceList,"Finn",Part.ListOfFighters,"Yun",AttributedPassives)
+    Finn = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,2,18,6,ResistanceList,"Finn",Part.ListOfFighters,"Yun",AttributedPassives,2)
     
     print("Finn done")
     
@@ -2044,7 +2076,7 @@ def CreateYunStage():
     DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Thrust","Wallop","Wallop","Preemptive Strike"])
     ResistanceList = [2,0,1,2,0,1]
     AttributedPassives = []
-    Yun1 = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
+    Yun1 = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives,None)
     
     print("Yun1 done")
     
@@ -2053,7 +2085,7 @@ def CreateYunStage():
     DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Thrust","Wallop","Wallop","Preemptive Strike"])
     ResistanceList = [0,1,2,0,1,2]
     AttributedPassives = []
-    Yun2 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives)
+    Yun2 = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,17,8,ResistanceList,"Grade 9 Yun Fixer",Part.ListOfFighters,"Yun",AttributedPassives,None)
     
     print("Yun2 done")
     
@@ -2069,7 +2101,7 @@ def CreateYunStage():
     DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Preperation","Preperation","Commandeering"])
     ResistanceList = [2,0,0,2,0,0]
     AttributedPassives = []
-    Yun = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,22,10,ResistanceList,"Yun",Part.ListOfFighters,"Yun",AttributedPassives)
+    Yun = CreateCharacter(90,175,2,False,SpeedDiceList,DeckList,3,22,10,ResistanceList,"Yun",Part.ListOfFighters,"Yun",AttributedPassives,None)
     
     print("Yun done")
     
@@ -2078,7 +2110,7 @@ def CreateYunStage():
     DeckList = CreateDeckList(["Thrust","Wallop","Feelin' Good","Feelin' Good","Preperation","Preperation","Time for a Test","Time for a Test"])
     ResistanceList = [0,1,2,0,1,2]
     AttributedPassives = []
-    Eri = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,22,8,ResistanceList,"Eri",Part.ListOfFighters,"Yun",AttributedPassives)
+    Eri = CreateCharacter(90,275,2,False,SpeedDiceList,DeckList,3,22,8,ResistanceList,"Eri",Part.ListOfFighters,"Yun",AttributedPassives,None)
     
     print("Eri done")
 
@@ -2109,6 +2141,7 @@ def CreateYunStage():
     Battle.visible = False
     Battle.StageNum = 2
     Battle.IsSpecialStage = False
+    Battle.EmotionLevelCap = 1
     app.StoryStages.append(Battle)
     
 def CreateRatsStage():
@@ -2215,7 +2248,7 @@ def CreateRatsStage():
     DeckList = CreateDeckList(["Organ Harvesting","Organ Harvesting","Backstreets Shove","Claw Off","Run Away"])
     ResistanceList = [2,1,0,2,1,0]
     AttributedPassives = []
-    Rat1 = CreateCharacter(170,105,2,False,SpeedDiceList,DeckList,1,10,5,ResistanceList,"Lenny",Part.ListOfFighters,"Rat",AttributedPassives)
+    Rat1 = CreateCharacter(170,105,2,False,SpeedDiceList,DeckList,1,10,5,ResistanceList,"Lenny",Part.ListOfFighters,"Rat",AttributedPassives,1)
     
     print("rat1 done")
     
@@ -2224,7 +2257,7 @@ def CreateRatsStage():
     DeckList = CreateDeckList(["Rat's Guide","Rat's Guide","Backstreets Shove","Claw Off","Run Away"])
     ResistanceList = [0,2,1,0,2,1]
     AttributedPassives = []
-    Rat2 = CreateCharacter(120,170,2,False,SpeedDiceList,DeckList,1,10,5,ResistanceList,"Mang-Chi",Part.ListOfFighters,"Rat",AttributedPassives)
+    Rat2 = CreateCharacter(120,170,2,False,SpeedDiceList,DeckList,1,10,5,ResistanceList,"Mang-Chi",Part.ListOfFighters,"Rat",AttributedPassives,1)
     
     print("rat2 done")
     
@@ -2233,7 +2266,7 @@ def CreateRatsStage():
     DeckList = CreateDeckList(["Sneaky Blow","Sneaky Blow","Backstreets Shove","Claw Off","Run Away"])
     ResistanceList = [1,0,2,1,0,2]
     AttributedPassives = []
-    Rat3 = CreateCharacter(70,235,2,False,SpeedDiceList,DeckList,1,10,5,ResistanceList,"Pete",Part.ListOfFighters,"Rat",AttributedPassives)
+    Rat3 = CreateCharacter(70,235,2,False,SpeedDiceList,DeckList,1,10,5,ResistanceList,"Pete",Part.ListOfFighters,"Rat",AttributedPassives,1)
     
     print("rat3 done")
     Fight.ListOfParts.append(Part)
@@ -2260,6 +2293,7 @@ def CreateRatsStage():
     Battle.visible = False
     Battle.StageNum = 1
     Battle.IsSpecialStage = False
+    Battle.EmotionLevelCap = 1
     app.StoryStages.append(Battle)
     
 def CreateBloodBathStage():
@@ -2295,16 +2329,16 @@ def CreateBloodBathStage():
     CreateCard("blue",0,"Sinking",DiceList,None,None)
     
     #creating the abnormailty pages #name,level,positive,single target,description,effect(s),list
-    CreateAbnormailyPage("Blood",2,False,True,"Defensive dice gain 1-2 power; Recieve +3-5 stagger damage",["Create PassiveRolledDefensive+1-2","Create PassiveRecievedAllStagger+3-5"],Fight.RewardCards)
-    CreateAbnormailyPage("Scars",1,True,True,"Take 2-5 less damage from slash attacks; 20% chance to negate attack",["Create PassiveRecievedSlashDamage-2-5","Scars"],Fight.RewardCards)
+    CreateAbnormailyPage("Blood",2,False,True,"Defensive dice gain 1-2 power; Recieve +3-5 stagger damage",["Create PassiveRolledDefensiveNum+1-2","Create PassiveRecievedAllStaggerNum+3-5"],Fight.RewardCards)
+    CreateAbnormailyPage("Scars",1,True,True,"Take 2-5 less damage from slash attacks; 20% chance to negate attack",["Create PassiveRecievedSlashDamageNum-2-5","Scars"],Fight.RewardCards)
     CreateAbnormailyPage("Pale Hands",1,True,True,"After 3 hits on the same target deal 3-10 Stagger (resets when switching target)",["Pale Hands"],Fight.RewardCards)
     
     SpeedDiceList = []
     CreateSpeedDie(1,2,SpeedDiceList)
     DeckList = CreateDeckList(["Depression","Pale Hands","Sinking"])
     ResistanceList = [-1,0,1,-1,1,2]
-    AttributedPassives = ["Create PassiveRecievedSlashDamage-2-5","Create PassiveRolledDefensive+1-2","Pale Hands"]
-    BloodBath = CreateCharacter(170,175,2,False,SpeedDiceList,DeckList,3,30,10,ResistanceList,"Bloody Cup",Part.ListOfFighters,"BloodBath",AttributedPassives)
+    AttributedPassives = ["Create PassiveRecievedSlashDamageNum-2-5","Create PassiveRolledDefensiveNum+1-2","Pale Hands"]
+    BloodBath = CreateCharacter(170,175,2,False,SpeedDiceList,DeckList,3,30,10,ResistanceList,"Bloody Cup",Part.ListOfFighters,"BloodBath",AttributedPassives,1)
     #has passives of 1-5 less damage from slash and 3 bind but +3 max block
     print("Bloodbath done")
     
@@ -2332,7 +2366,93 @@ def CreateBloodBathStage():
     Battle.visible = False
     Battle.StageNum = 1
     Battle.IsSpecialStage = True
+    Battle.EmotionLevelCap = 0 #special stages always emotion level cap 0
     app.Floors[0].EnlightenmentStages.append(Battle)
+
+def CreateScorchedGirlStage():
+    
+    Battle = Group()
+    ListOfFights = []
+    
+    Fight = Group()
+    Fight.FightNumber = 0
+    Fight.RewardCards = []
+    Fight.RewardCharacters = []
+    Fight.ListOfParts = []
+    
+    Part = Group()
+    Part.ListOfFighters = []
+    
+    #creating scorched girl's and match's unique unobtainable cards
+    
+    DiceList = []
+    CreateDie(1,8,"evade",DiceList,None,None,None,False)
+    CreateCard("blue",0,"Broken Hope",DiceList,None,None)
+    
+    DiceList = []
+    CreateDie(1,4,"evade",DiceList,None,None,None,False)
+    CreateDie(3,3,"blunt",DiceList,"3Burn","On Hit","Enemy",False) #inflict 3 burn on hit
+    CreateCard("blue",3,"Ember",DiceList,None,None) #on use lose 5 hp
+    
+    DiceList = []
+    CreateDie(15,20,"blunt",DiceList,None,None,None,False)
+    CreateCard("blue",4,"Fourth Match Flame",DiceList,None,None)
+    
+    #creating the abnormailty pages #name,level,positive,single target,description,effect(s),list
+    CreateAbnormailyPage("Ashes",1,True,True,"On hit inflict 1-3 burn; On hit 40% chance to gain effect: On hit inflict 1 burn next scene (does not stack)",["Create PassiveDealtCreate Status1-3Burn","Ashes"],Fight.RewardCards)
+    CreateAbnormailyPage("Footfalls",2,False,False,"On clash, if the librarian's hp is 20% or lower, deal 30% target's max hp (max 36) and inflict 1-3 burn, then die",["Footfalls"],Fight.RewardCards)
+    CreateAbnormailyPage("Matchlight",1,False,True,"First 2 pages you use after this gain matchlight: on use gain ember; increase first die max by ember; at 4+ ember 25% chance to take X damage, X = ember",["Matchlight"],Fight.RewardCards)
+    
+    SpeedDiceList = []
+    CreateSpeedDie(6,6,SpeedDiceList)
+    DeckList = CreateDeckList(["Fourth Match Flame"])
+    ResistanceList = [-2,-2,-2,2,2,2]
+    AttributedPassives = ["Scorched Girl Mourn","Scorched Girl Clumsy"] #lose 50% max hp on match death and get staggered, on stagger lose all light
+    ScorchedGirl = CreateCharacter(170,200,2,False,SpeedDiceList,DeckList,4,500,5,ResistanceList,"Scorched Girl",Part.ListOfFighters,"Scorched Girl",AttributedPassives,0)
+    print("Scorched girl done")
+
+    SpeedDiceList = []
+    CreateSpeedDie(1,2,SpeedDiceList)
+    DeckList = CreateDeckList(["Broken Hope","Ember"])
+    ResistanceList = [0,0,1,0,0,2]
+    AttributedPassives = []
+    Match1 = CreateCharacter(100,100,2,False,SpeedDiceList,DeckList,3,25,15,ResistanceList,"Match1",Part.ListOfFighters,"Match",AttributedPassives,3)
+    print("Match1 done")
+
+    SpeedDiceList = []
+    CreateSpeedDie(1,2,SpeedDiceList)
+    DeckList = CreateDeckList(["Broken Hope","Ember"])
+    ResistanceList = [0,0,1,0,0,2]
+    AttributedPassives = []
+    Match1 = CreateCharacter(100,300,2,False,SpeedDiceList,DeckList,3,25,15,ResistanceList,"Match2",Part.ListOfFighters,"Match",AttributedPassives,1)
+    print("Match2 done")
+    
+    Fight.ListOfParts.append(Part)
+    ListOfFights.append(Fight)
+    
+    BattleContainer = Rect(-80,-20,100 + len(ListOfFights) * 50,80,fill = "black", border = "white")
+    Battle.add(BattleContainer)
+    
+    index = 0
+    for Fight in ListOfFights:
+        FightIcon = Rect(index * 55,0,40,40,fill = "black", border = "orange")
+        FightIcon.rotateAngle = -45
+        FightNumber = Label(str(index + 1),FightIcon.centerX,FightIcon.centerY,fill = "orange")
+        
+        #Battle.Icon = FightIcon
+        Battle.add(FightIcon)
+        Battle.add(FightNumber)
+        FightIcon.Text = FightNumber
+        Fight.FightIcon = FightIcon
+        index += 1
+    
+    Battle.ListOfFights = ListOfFights
+    Battle.FightsUnlocked = 1
+    Battle.visible = False
+    Battle.StageNum = 1
+    Battle.IsSpecialStage = True
+    Battle.EmotionLevelCap = 0 #special stages always emotion level cap 0
+    app.Floors[1].EnlightenmentStages.append(Battle)
 
 
 def GenerateTypeSprite(Type):
@@ -2458,6 +2578,7 @@ def CreateLightSprite(Character):
 def CreateEmotionBar(Character,List):
 
     EmotionReq = 3 + 2 * Character.EmotionLevel
+    print("emotion req is " + str(EmotionReq))
     FullEmotionBar = Group()
     StartX = 0
     
@@ -2560,7 +2681,7 @@ def CreateCard(color,cost,name,dice,AddToList,OnUseEffect):
         Die.TypeSprite.centerY = StartY
         FullCard.add(Die.TypeSprite)
         
-        Die.DamageRangeText.centerX = app.Xdisplace+20
+        Die.DamageRangeText.centerX = app.Xdisplace+15
         Die.DamageRangeText.centerY = StartY
         if Die.AddEffectDescription != None:
             StartY += 1
@@ -2650,7 +2771,7 @@ def CopyCard(Card,NewList):
         Die.TypeSprite.centerY = StartY
         FullCard.add(Die.TypeSprite)
         
-        Die.DamageRangeText.centerX = app.Xdisplace+20
+        Die.DamageRangeText.centerX = app.Xdisplace+15
         Die.DamageRangeText.centerY = StartY
         if Die.AddEffectDescription != None:
             StartY += 1
@@ -2676,7 +2797,7 @@ def CopyCard(Card,NewList):
     FullCard.visible = False
     #FullCard.IsDisplayCard = False
 
-def CreateCharacter(x,y,facing,ControlledByPlayer,SpeedDiceList,Decklist,MaxLight,MaxHealth,MaxStagger,ResistanceList, name, ListToAddTo,SpriteName,AttributedPassives):
+def CreateCharacter(x,y,facing,ControlledByPlayer,SpeedDiceList,Decklist,MaxLight,MaxHealth,MaxStagger,ResistanceList, name, ListToAddTo,SpriteName,AttributedPassives,StartingLight):
     FullCharacter = Group()
     FullCharacter.StartX = x
     FullCharacter.StartY = y 
@@ -2685,6 +2806,7 @@ def CreateCharacter(x,y,facing,ControlledByPlayer,SpeedDiceList,Decklist,MaxLigh
     FullCharacter.MaxLight = MaxLight
     FullCharacter.MaxHandSize = 8
     FullCharacter.Light = MaxLight
+    FullCharacter.StartingLight = StartingLight
     
     FullCharacter.MaxHealth = MaxHealth
     FullCharacter.Health = FullCharacter.MaxHealth
@@ -3081,7 +3203,7 @@ def CreateCharacters():
         "Light Attack","Light Defense","Light Defense","Focused Strikes"])
         ResistanceList = [2,1,0,2,1,0]
         AttributedPassives = []
-        CreateCharacter(290,75 + index * 100,1,True,SpeedDiceList,DeckList,3,30,15,ResistanceList,"Roland" + str(index),PlayerCharacters,"Peasant",AttributedPassives)
+        CreateCharacter(290,75 + index * 100,1,True,SpeedDiceList,DeckList,3,30,15,ResistanceList,"Roland" + str(index),PlayerCharacters,"Peasant",AttributedPassives,None)
         index += 1
     CharacterCardsLen = len(app.UnusedCharacterCards)
     for Character in PlayerCharacters:
@@ -3099,7 +3221,7 @@ def MoveToPageSelect():
     print("Moving to select")
     for Character in AllFightingCharacters:
         
-        if Character.Staggered != True:
+        if Character.Staggered != True and app.RoundNum != 0:
             DrawCard(Character)
             
         for Die in Character.SpeedDice:
@@ -3109,7 +3231,20 @@ def MoveToPageSelect():
         
         #print(Character.ControlledByPlayer)
         if not Character.ControlledByPlayer and not Character.Staggered:
-            ShuffleList(Character.Hand)
+            EscroList = []
+            index = 9
+            for Count in range(10):
+                if len(Character.Hand) > 0:
+                    for Card in Character.Hand:
+                        if Card.cost >= index: #grabs all cards of the cost with slight failure and skipping for randomness but could be fixed with removal list
+                            EscroList.append(Card)
+                            Character.Hand.remove(Card)
+                    index -= 1
+            for Card in EscroList:
+                Character.Hand.append(Card)
+            EscroList.clear()
+            #order the hand so we have an expensive card use first but also a little gamba ai
+            #ShuffleList(Character.Hand)
             CharacterRandomTarget(Character)
         
 def DrawCard(Character):
@@ -3555,13 +3690,28 @@ def ClashingWithExtraDice(FirstDie, ExtraDieList, ExtraDiceCharacter):
     
     ShowPagesClashBetweenPageAndExtra(FirstDie)
     ExtraDieList[0].visible = True
+
+    #before dice are rolled and bro dies to bleed
+    for Effect in FirstDie.ConnectedCharacter.StatusEffects:
+        if Effect.BaseEffect == False and Effect.Trigger == "Clash": #I was thinking of also doing types but timing problems with bleed
+                print("Clash trigger passive activating: " + Effect.name)
+                if Effect.name == "Footfalls":
+                    if FirstDie.ConnectedCharacter.Health <= FirstDie.ConnectedCharacter.MaxHealth/5:
+                        FootfallsDamage = ExtraDiceCharacter.MaxHealth * 3 /10 
+                        if FootfallsDamage > 36:
+                            FootfallsDamage = 36
+                        ExtraDiceCharacter.Health -= FootfallsDamage
+                        Chance2 = random.randint(1,3)
+                        for Count in range (Chance2):
+                            AddStatusEffect(ExtraDiceCharacter,"Burn",False)
+                        FirstDie.ConnectedCharacter.Health = 0
     
     FirstDieResult = RollDie(FirstDie.HeldPage.DiceList[0],FirstDie.ConnectedCharacter)
     FirstDieType = FirstDie.HeldPage.DiceList[0].type
     SecondDieResult = RollDie(ExtraDieList[0].TrueDie,ExtraDiceCharacter)
     SecondDieType = ExtraDieList[0].TrueDie.type
     
-    #THis one cannot be as easily be made more efficent because it uses different die removals based on extra or not
+    #This one cannot be as easily be made more efficent because it uses different die removals based on extra or not
     # I could solve this by making a extra bool but I will leave that to furute me
     
     if FirstDieResult > SecondDieResult:
@@ -3905,10 +4055,17 @@ def ResolveAndRemovePage(Die):
         
 def AddEmotion(Character,Positive):
     #print("wip")
-    if Character.EmotionLevel < app.CurrentEmotionLevelCap:#check if at max level already
-        if len(Character.EmotionCoins) < len(Character.EmotionBarList): #checks if at max coins per turn
-            Character.EmotionCoins.append(Positive)
-            UpdateEmotionBar(Character)
+    if Character.ControlledByPlayer:
+        if Character.EmotionLevel < app.CurrentEmotionLevelCap:#check if at max level already
+            if len(Character.EmotionCoins) < len(Character.EmotionBarList) - 1: #checks if at max coins in bar
+                Character.EmotionCoins.append(Positive)
+                UpdateEmotionBar(Character)
+    else:
+        if Character.EmotionLevel < app.CurrentBattle.EmotionLevelCap:#check if at max level already
+            if len(Character.EmotionCoins) < len(Character.EmotionBarList) - 1: #checks if at max coins per turn
+                Character.EmotionCoins.append(Positive)
+                UpdateEmotionBar(Character)
+
     
 def EmotionLevelUp(Character):
     Character.EmotionLevel += 1
@@ -3942,11 +4099,13 @@ def RollDie(Die,RollingCharacter):
         if Die.type == "Slash" or Die.type == "Blunt" or Die.type == "Pierce":
             if Effect.name == "Bleed":
                 RollingCharacter.Health -= Effect.Count
+                UpdateBars(RollingCharacter)
                 for count in range(Effect.Count):
-                    CreateParticle(LosingDie.ConnectedCharacter.CharacterSprite.centerX,LosingDie.ConnectedCharacter.CharacterSprite.centerY,5,"darkred")
+                    CreateParticle(RollingCharacter.CharacterSprite.centerX,RollingCharacter.CharacterSprite.centerY,5,"darkred")
                 Effect.Count = int((2/3) * Effect.Count)
             elif Effect.name == "Fairy":
                 RollingCharacter.Health -= Effect.Count
+                UpdateBars(RollingCharacter)
 
     return Roll
     
@@ -3998,9 +4157,7 @@ def ResolveDieValueChanges(SpeedDie):
                     Chance2 *= Effect.Modifier
                     Modifier += Chance2
                     
-                    
-                
-                    
+                               
         if Modifier != 0:
             Die.MinModifier += Modifier
             Die.MaxModifier += Modifier
@@ -4017,7 +4174,6 @@ def ResolveDieValueChanges(SpeedDie):
                     UpdateDamageRange(TargetList[chance])
                     TargetList.remove(TargetList[chance])
                 
-        
     
 def TriggerDieEffect(CombatDie,TriggerCharacter,EnemyCharacter):
     #Example effect 3Bleed
@@ -4191,6 +4347,9 @@ def AddPassiveEffect(Character,Passive):
     PassiveEffect.Min = 0
     PassiveEffect.Max = 0
     PassiveEffect.DamageTypeStagger = False
+    PassiveEffect.StatusEffect = None
+    PassiveEffect.StatusEffectToSelf = False
+    PassiveEffect.StatusNext = False
     
     PassiveEffect.RemovalTrigger = None
     PassiveEffect.Removal = "Full"
@@ -4210,6 +4369,14 @@ def AddPassiveEffect(Character,Passive):
         PassiveEffect.Type = "All"
     elif Passive == "Scars":
         PassiveEffect.Trigger = "Recieved"
+        PassiveEffect.Type = "All"
+    elif Passive == "Scorched Girl Mourn":
+        PassiveEffect.Trigger = "Death"
+        PassiveEffect.Type = "Ally"
+    elif Passive == "Scorched Girl Clumsy":
+        PassiveEffect.Trigger = "Staggered"
+    elif Passive == "Footfalls":
+        PassiveEffect.Trigger = "Clash"
         PassiveEffect.Type = "All"
         
     if PassiveEffect.Icon == None:
@@ -4258,15 +4425,41 @@ def AddPassiveEffect(Character,Passive):
         PassiveEffect.Type = "Evade"
         effect = effect[5:]
         
-
-    if PassiveEffect.Trigger == "Rolled":
-        if effect.startswith("-"):
-            PassiveEffect.Modifier = -1
-            effect = effect[1:]
-        elif effect.startswith("+"):
-            PassiveEffect.Modifier = 1
+    if effect.startswith("Num"):
+        effect = effect[3:]
+        if PassiveEffect.Trigger == "Rolled":
+            if effect.startswith("-"):
+                PassiveEffect.Modifier = -1
+                
+            elif effect.startswith("+"):
+                PassiveEffect.Modifier = 1
+             
             effect = effect[1:]
     
+            StartChar = effect[0:1]
+            if StartChar.isdigit():
+                PassiveEffect.Min = int(StartChar)
+                effect = effect[2:]
+            StartChar = effect[0:1]
+            if StartChar.isdigit():
+                PassiveEffect.Max = int(StartChar)
+                effect = effect[1:]
+        elif PassiveEffect.Trigger == "Dealt" or PassiveEffect.Trigger == "Recieved":
+            if effect.startswith("Stagger"):
+                PassiveEffect.DamageTypeStagger = True
+                effect = effect[7:]
+            elif effect.startswith("Damage"):
+                PassiveEffect.DamageTypeStagger = False
+                effect = effect[6:]
+    if effect.startswith("Create Status"):
+        effect = effect[13:]
+        if effect.startswith("Self"):
+            PassiveEffect.StatusEffectToSelf = True
+            effect = effect[4:]
+        if effect.startswith("Next"):
+            PassiveEffect.StatusNext = True
+            effect = effect[4:]
+
         StartChar = effect[0:1]
         if StartChar.isdigit():
             PassiveEffect.Min = int(StartChar)
@@ -4275,13 +4468,9 @@ def AddPassiveEffect(Character,Passive):
         if StartChar.isdigit():
             PassiveEffect.Max = int(StartChar)
             effect = effect[1:]
-    elif PassiveEffect.Trigger == "Dealt" or PassiveEffect.Trigger == "Recieved":
-        if effect.startswith("Stagger"):
-            PassiveEffect.DamageTypeStagger = True
-            effect = effect[7:]
-        elif effect.startswith("Damage"):
-            PassiveEffect.DamageTypeStagger = False
-            effect = effect[6:]
+        PassiveEffect.StatusEffect = effect
+
+
 
     #EffectIcon.Trigger = None
     Character.StatusEffects.append(PassiveEffect)
@@ -4438,7 +4627,7 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
             if Effect.Type == "All":
                 ActivatePassive = True
             elif Effect.Type == "Offensive":
-                if Die.type == "Slash" or type == "Blunt" or type == "Pierce":
+                if type == "Slash" or type == "Blunt" or type == "Pierce":
                     ActivatePassive = True
             elif Effect.Type == "Defensive":
                 if type == "Evade" or type == "Block":
@@ -4461,11 +4650,19 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
                         
             if ActivatePassive:
                 Chance2 = random.randint(Effect.Min, Effect.Max)
-                Chance2 *= Effect.Modifier
-                if Effect.DamageTypeStagger == True:
-                    StaggerEffectModifier += Chance2
+                
+                if Effect.StatusEffect != None:
+                    for Count in range(Chance2):
+                        if Effect.StatusEffectSelf:
+                            AddStatusEffect(RecievingCharacter,Effect.StatusEffectToSelf,Effect.StatusNext)
+                        else:
+                            AddStatusEffect(DealingCharacter,Effect.Effect.StatusNext,Effect.StatusNext)
                 else:
-                    HealthEffectModifier += Chance2
+                    Chance2 *= Effect.Modifier
+                    if Effect.DamageTypeStagger == True:
+                        StaggerEffectModifier += Chance2
+                    else:
+                        HealthEffectModifier += Chance2
                     
             #exceptions, shouldnt break with 0 min 0 max 0 mod
             if Effect.name == "Scars":
@@ -4481,7 +4678,7 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
             if Effect.Type == "All":
                 ActivatePassive = True
             elif Effect.Type == "Offensive":
-                if Die.type == "Slash" or type == "Blunt" or type == "Pierce":
+                if type == "Slash" or type == "Blunt" or type == "Pierce":
                     ActivatePassive = True
             elif Effect.Type == "Defensive":
                 if type == "Evade" or type == "Block":
@@ -4504,11 +4701,19 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
                         
             if ActivatePassive:
                 Chance2 = random.randint(Effect.Min, Effect.Max)
-                Chance2 *= Effect.Modifier
-                if Effect.DamageTypeStagger == True:
-                    StaggerEffectModifier += Chance2
+                
+                if Effect.StatusEffect != None:
+                    for Count in range(Chance2):
+                        if Effect.StatusEffectSelf:
+                            AddStatusEffect(DealingCharacter,Effect.StatusEffectToSelf,Effect.StatusNext)
+                        else:
+                            AddStatusEffect(RecievingCharacter,Effect.StatusEffectToSelf,Effect.StatusNext)
                 else:
-                    HealthEffectModifier += Chance2
+                    Chance2 *= Effect.Modifier
+                    if Effect.DamageTypeStagger == True:
+                        StaggerEffectModifier += Chance2
+                    else:
+                        HealthEffectModifier += Chance2
                     
             #exceptions, shouldnt break with 0 min 0 max 0 mod                    
             if Effect.name == "Pale Hands":
@@ -4621,6 +4826,13 @@ def CalculatePhysResistence(Character,type,IsStagger):
     return ModifierValue
     
 def Stagger(Character):
+    for Effect in Character.StatusEffects:
+        if Effect.BaseEffect == False and Effect.Trigger == "Staggered":
+            print("triggering a stagger passive: " + Effect.name)
+            if Effect.name == "Scorched Girl Clumsy":
+                Character.Light = 0
+                FixLightSpritePositions(Character)
+
     for Die in Character.SpeedDice:
         if Die.HeldPage != None:
             #RestorePage(Die.HeldPage)
@@ -4632,6 +4844,7 @@ def Stagger(Character):
             if Die.TargettingLine != None:
                 Die.TargettingLine.visible = False
         Die.TargetDie = None
+    Character.Staggered = True
         
 def KillCharacter(Character):
     print("killing: " + Character.name)
@@ -4667,6 +4880,20 @@ def KillCharacter(Character):
         if Character.ControlledByPlayer == FightCharacter.ControlledByPlayer:
             for Count in range(3):
                 AddEmotion(FightCharacter,False)
+
+    #resolves death trigger passives
+    for EachCharacter in AllFightingCharacters:
+        if EachCharacter != Character:
+            for Effect in EachCharacter.StatusEffects:
+                if Effect.BaseEffect == False and Effect.Trigger == "Death":
+                    if Effect.Type == "All" or (Effect.Type == "Ally" and EachCharacter.ControlledByPlayer == Character.ControlledByPlayer) or Effect.Type == "Enemy" and EachCharacter.ControlledByPlayer != Character.ControlledByPlayer:
+                        print("Death trigger passive activating: " + Effect.name)
+                        if Effect.name == "Scorched Girl Mourn":
+                            EachCharacter.Health -= EachCharacter.MaxHealth / 2
+                            EachCharacter.Stagger = 0
+                            UpdateBars(EachCharacter)
+
+                
     
     #adds to dead
     DeadCharacters.append(Character)
@@ -4704,9 +4931,9 @@ def UpdateBars(Character):
         Character.StaggerBar.opacity = 100
         Character.StaggerBarText.opacity = 100
     else:
+        #stagger <= 0
         Character.StaggerBar.opacity = 0
         Character.StaggerBarText.opacity = 0
-        Character.Staggered = True
         Stagger(Character)
         for Die in Character.SpeedDice:
             Die.TargetDie = None
@@ -4804,19 +5031,32 @@ def ParseForDescription(String,Trigger,Target):
 def CardPartition(String):
     PartitionedDescription = []
     if len(String) > 14:
-        while len(String) > 14:
-            PartDescription = String[0:10]
-            String = String[10:]
-            for ExtraPiece in range(4):
-                if not String.startswith(" "):
-                    PartDescription = PartDescription + String[0:1]
-                    String = String[1:]
-                    
-            Piece = Label(PartDescription,0,0,fill = "yellow",size = 8)
-            PartitionedDescription.append(Piece)
 
-        FinalPiece = Label(String,0,0,fill = "yellow",size = 8)
-        PartitionedDescription.append(FinalPiece)
+        PrevSentence = ""
+        NextWord = ""
+        while len(String) > 0: #this needs to change so we stop losing final word / sentence
+            NextWord = ""
+            while not String.startswith(" ") and len(String) > 0:
+                NextWord = NextWord + String[0:1]
+                String = String[1:]
+            #print(len(PrevSentence))
+            if len(PrevSentence + NextWord) < 14:
+                if len(PrevSentence) > 0:
+                    #print("adding a word to the sentence: ")
+                    PrevSentence = PrevSentence + " " + NextWord
+                else:
+                    PrevSentence = NextWord
+
+                String = String[1:]
+            else:
+                Piece = Label(PrevSentence,0,0,fill = "yellow",size = 8) #sentence is full so finish it and start a new one
+                PartitionedDescription.append(Piece)
+                #print("Overflowing into next sentence with " + NextWord +"fin")
+                PrevSentence = NextWord
+        
+        Piece = Label(PrevSentence,0,0,fill = "yellow",size = 8) #final sentence bc we were losing words
+        PartitionedDescription.append(Piece)
+
     else:
         FinalPiece = Label(String,0,0,fill = "yellow",size = 8)
         PartitionedDescription.append(FinalPiece)
@@ -4866,7 +5106,7 @@ def ResetAllCharacterPositions():
             
         ShowCharacterUI(Character)
         
-        if Character.Staggered != True:
+        if Character.Staggered != True and app.RoundNum != 0:
             GainLight(Character)
             FixLightSpritePositions(Character)
         
@@ -4886,7 +5126,9 @@ def ResetAllCharacterPositions():
         
         for StatusEffect in Character.StatusEffects: #end of turn resolving effects
             if StatusEffect.Trigger == "EndTurn":
+                print("EOT trigger: " + StatusEffect.name + " for " + str(StatusEffect.Count))
                 Character.Health -= StatusEffect.Count
+                UpdateBars(Character)
             if StatusEffect.RemovalTrigger == "EndTurn":
                 if StatusEffect.Removal == "Full":
                     StatusEffect.Count = 0
@@ -4915,6 +5157,7 @@ def ResetAllCharacterPositions():
                 
         FixUpCharacter(Character)
         
+    #check for team level ups
     NumOfCharacters = 0
     TotalPositive = 0
     TotalNegative = 0
@@ -4941,19 +5184,14 @@ def ResetAllCharacterPositions():
 
 def CheckForEmotionLevelup(Character):
     
-    if Character.EmotionLevel == 0 and len(Character.EmotionCoins) >= len(Character.EmotionBarList):
+    print (str(len(Character.EmotionCoins)) + " coins vs possible: " + str(len(Character.EmotionBarList)))
+    if len(Character.EmotionCoins) >= len(Character.EmotionBarList) - 1: #-1 bc the text is included in length
         EmotionLevelUp(Character)
-    elif Character.EmotionLevel == 1 and len(Character.EmotionCoins) >= len(Character.EmotionBarList):
-        EmotionLevelUp(Character)
-    elif Character.EmotionLevel == 2 and len(Character.EmotionCoins) >= len(Character.EmotionBarList):
-        #add a die
-        EmotionLevelUp(Character)
-    elif Character.EmotionLevel == 3 and len(Character.EmotionCoins) >= len(Character.EmotionBarList):
-        #add a die
-        EmotionLevelUp(Character)
-    elif Character.EmotionLevel == 4 and len(Character.EmotionCoins) >= len(Character.EmotionBarList):
-        #Characters draw extra
-        EmotionLevelUp(Character)
+        if Character.EmotionLevel == 3 or Character.EmotionLevel == 4:
+            print("add a die from emotion level up")
+            #add a die
+        #at emotion 5 draw extra card
+
         
 def LevelUpTeamEmotionLevel(TotalPositive,TotalNegative):
     Chance = random.randint(0,TotalPositive + TotalNegative)
@@ -5117,9 +5355,8 @@ def UpdateResolution():
     app.ContinueText = Label("Press Space To Continue",app.width/2,app.height/2 + 50 * app.YScreenDialation, fill = "white",visible = False)
 
 #right now things;
-#problem with emotion level ups not occuring even with 3 coins sometimes
-# run AddPassiveEffect for all attributed things, and make a system for assigning them from emotional levels
-#next stages are scorched girl and hook office, into yesod unlock and chef office, into forsaken murderer and lulu office
+#make scorched girl abnos work
+#next stages are chef office, into forsaken murderer and lulu office
 
 #far off
 #have character's page be clickable to go into attribution
@@ -5132,4 +5369,4 @@ def UpdateResolution():
 
 #also cards can be found easily on https://projectmoon.miraheze.org/wiki/Cards_(Library_of_Ruina)
 # type: python LibraryOfRuin.py to run
-cmu_graphics.run()
+cmu_graphics.run() #runs fine without on home comp check school for same

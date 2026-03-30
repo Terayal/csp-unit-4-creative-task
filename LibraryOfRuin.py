@@ -84,8 +84,8 @@ app.FadingParticles = []
 #Inputs
 def onMousePress(x,y):
     if app.SinglePressLock == False:
-        print(app.width)
-        print(app.height)
+        #print(app.width)
+        #print(app.height)
         #app.SinglePressLock = True
         app.MouseX = x
         app.MouseY = y
@@ -116,6 +116,7 @@ def onMousePress(x,y):
                     print("Chose " + Character.name)
                     for Effect in app.ChosenAbnoPage.Effect:
                         AddPassiveEffect(ChosenCharacter,Effect)
+                    ResetAllCharacterPositions()
                     app.PlayerConfirmStage = 0
                     for Button in app.TemporaryButtons:
                         Button.visible = False
@@ -475,8 +476,8 @@ def onKeyPress(key):
         if key == "escape":
             for Die in PlayerSpeedDice:
                 UntargetSpeedDie(Die)
-            print("hiding hand")
-            HideHand(Character)
+                print("hiding hand")
+                HideHand(Die.ConnectedCharacter)
         elif key == "space":
             #if app.PlayerConfirmStage == 0 or app.PlayerConfirmStage == 1 or app.PlayerConfirmStage == 2:
             app.PlayerConfirm = True
@@ -627,8 +628,8 @@ def onStep():
             app.RoundNum += 1
             ResetAllCharacterPositions()
             
-            #if app.PlayerConfirmStage != 7:
-            app.PlayerConfirmStage = 0
+            if app.PlayerConfirmStage != 7:
+                app.PlayerConfirmStage = 0
             
         #app.PausedForClash = False
         if (app.AutoProgressStagesForTesting or app.PlayerConfirmStage == 0) and not app.PlayerConfirm and app.PlayerConfirmStage != 10:
@@ -4732,9 +4733,14 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
                         if Suspect.name == "Dormant Ash Boost":
                             FoundAshBoost = True
                     if FoundAshBoost == False:
-                        print("adding Dormant ash boost")
+                        print("adding Dormant ash boost") #I would love to use addpassive but this needs to be impermanent
                         EffectIcon = Group()
-                        EffectIcon.Trigger = Dealt
+                        EffectIcon.Trigger = "Dealt"
+                        EffectIcon.Type = "All"
+                        EffectIcon.Min = 0
+                        EffectIcon.Max = 0
+                        EffectIcon.Modifier = 0
+                        EffectIcon.StatusEffect = None
                         EffectIcon.RemovalTrigger = "EndTurn"
                         EffectIcon.Removal = "Dormant Ash"
                         EffectIcon.name = "Dormant Ash Boost"
@@ -4751,6 +4757,7 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
 
             elif Effect.name == "Ash Boost":
                 AddStatusEffect(RecievingCharacter,"Burn",False)
+                
             elif Effect.name == "Pale Hands":
                 #adds effect and removals all from all else, 3 stax = 3-10 stagger 
                 for Character in AllFightingCharacters:
@@ -5140,8 +5147,7 @@ def ResetAllCharacterPositions():
         CheckForEmotionLevelup(Character)
             
         ShowCharacterUI(Character)
-        
-        if Character.Staggered != True and app.RoundNum != 0:
+        if Character.Staggered != True and app.RoundNum != 0 and app.PlayerConfirmStage != 7:
             GainLight(Character)
             FixLightSpritePositions(Character)
         
@@ -5225,7 +5231,7 @@ def ResetAllCharacterPositions():
 
 def CheckForEmotionLevelup(Character):
     
-    print (str(len(Character.EmotionCoins)) + " coins vs possible: " + str(len(Character.EmotionBarList)))
+    #print (str(len(Character.EmotionCoins)) + " coins vs possible: " + str(len(Character.EmotionBarList)))
     if len(Character.EmotionCoins) >= len(Character.EmotionBarList) - 1: #-1 bc the text is included in length
         EmotionLevelUp(Character)
         if Character.EmotionLevel == 3 or Character.EmotionLevel == 4:

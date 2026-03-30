@@ -4378,6 +4378,13 @@ def AddPassiveEffect(Character,Passive):
     elif Passive == "Footfalls":
         PassiveEffect.Trigger = "Clash"
         PassiveEffect.Type = "All"
+    elif Passive == "Ashes":
+        PassiveEffect.Trigger = "Dealt"
+        PassiveEffect.Type = "All"
+        #40% chance to gain non stackable Offensive dice inflict 1 burn
+    elif Passive == "Matchlight":
+        PassiveEffect.Trigger = "Use Card"
+        PassiveEffect.TrackedCards = []
         
     if PassiveEffect.Icon == None:
         PassiveEffect.Icon = Circle(0,0,10,fill = "yellow",border = "red")
@@ -4654,9 +4661,9 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
                 if Effect.StatusEffect != None:
                     for Count in range(Chance2):
                         if Effect.StatusEffectSelf:
-                            AddStatusEffect(RecievingCharacter,Effect.StatusEffectToSelf,Effect.StatusNext)
+                            AddStatusEffect(RecievingCharacter,Effect.StatusEffect,Effect.StatusNext)
                         else:
-                            AddStatusEffect(DealingCharacter,Effect.Effect.StatusNext,Effect.StatusNext)
+                            AddStatusEffect(DealingCharacter,Effect.StatusEffect,Effect.StatusNext)
                 else:
                     Chance2 *= Effect.Modifier
                     if Effect.DamageTypeStagger == True:
@@ -4668,7 +4675,7 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
             if Effect.name == "Scars":
                 Chance2 = random.randint(1, 5)
                 if Chance2 == 5:
-                    SmokeModifier = 0 #a jank fix but works
+                    SmokeModifier = 0 #a way to do negation but works
                     
                 #20% negation chance
                     
@@ -4705,9 +4712,9 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
                 if Effect.StatusEffect != None:
                     for Count in range(Chance2):
                         if Effect.StatusEffectSelf:
-                            AddStatusEffect(DealingCharacter,Effect.StatusEffectToSelf,Effect.StatusNext)
+                            AddStatusEffect(DealingCharacter,Effect.StatusEffect,Effect.StatusNext)
                         else:
-                            AddStatusEffect(RecievingCharacter,Effect.StatusEffectToSelf,Effect.StatusNext)
+                            AddStatusEffect(RecievingCharacter,Effect.StatusEffect,Effect.StatusNext)
                 else:
                     Chance2 *= Effect.Modifier
                     if Effect.DamageTypeStagger == True:
@@ -4715,19 +4722,47 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
                     else:
                         HealthEffectModifier += Chance2
                     
-            #exceptions, shouldnt break with 0 min 0 max 0 mod                    
-            if Effect.name == "Pale Hands":
+            #exceptions, shouldnt break with 0 min 0 max 0 mod  
+            if Effect.name == "Ashes":
+                #40% chance to gain non stackable Offensive dice inflict 1 burn 
+                Chance = random.randint(1, 10)    
+                if Chance <= 4:
+                    FoundAshBoost = False
+                    for Suspect in DealingCharacter.StatusEffects: #non stackable check for already present
+                        if Suspect.name == "Dormant Ash Boost":
+                            FoundAshBoost = True
+                    if FoundAshBoost == False:
+                        print("adding Dormant ash boost")
+                        EffectIcon = Group()
+                        EffectIcon.Trigger = Dealt
+                        EffectIcon.RemovalTrigger = "EndTurn"
+                        EffectIcon.Removal = "Dormant Ash"
+                        EffectIcon.name = "Dormant Ash Boost"
+                        EffectIcon.Count = 1
+                        EffectIcon.BaseEffect = False
+                        Symbol = Rect(0,0,15,15,fill="orange",border = "grey")
+                        EffectIcon.add(Symbol)
+                        EffectIcon.Text = Label("1",10,10)
+                        EffectIcon.add(EffectIcon.Text)
+                        DealingCharacter.StatusEffects.append(EffectIcon)
+                        print("length of status is now: " + str(len(DealingCharacter.StatusEffects)))
+                        DealingCharacter.add(EffectIcon)
+                        UpdateStatusEffects(DealingCharacter)
+
+            elif Effect.name == "Ash Boost":
+                AddStatusEffect(RecievingCharacter,"Burn",False)
+            elif Effect.name == "Pale Hands":
                 #adds effect and removals all from all else, 3 stax = 3-10 stagger 
                 for Character in AllFightingCharacters:
                     if Character != RecievingCharacter: #dont check me
                         for Suspect in Character.StatusEffects: #custom contains bc they are not actually the same across all
-                            if Suspect.name == "PaleCombo":
+                            if Suspect.name == "Pale Combo":
                                 RemoveStatusEffect(Suspect,Character.StatusEffects)
                 FoundCombo = None
                 print("length of status to look through is: " + str(len(RecievingCharacter.StatusEffects)))
                 for FindIt in RecievingCharacter.StatusEffects:
                     print("Findit is: " + FindIt.name)
-                    if FindIt.name == "PaleCombo":
+                    if FindIt.name == "Pale Combo":
                         FoundCombo = FindIt
                         
                 if FoundCombo != None:
@@ -4746,7 +4781,7 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
                     EffectIcon.Trigger = None
                     EffectIcon.RemovalTrigger = None
                     EffectIcon.Removal = "Full"
-                    EffectIcon.name = "PaleCombo"
+                    EffectIcon.name = "Pale Combo"
                     EffectIcon.Count = 1
                     EffectIcon.BaseEffect = False
                     Symbol = Rect(0,0,15,15,fill="white",border = "black")
@@ -5132,13 +5167,19 @@ def ResetAllCharacterPositions():
             if StatusEffect.RemovalTrigger == "EndTurn":
                 if StatusEffect.Removal == "Full":
                     StatusEffect.Count = 0
-                if StatusEffect.Removal == "1/3":
+                elif StatusEffect.Removal == "1/3":
                     StatusEffect.Count = int((2/3) * StatusEffect.Count)
-                if StatusEffect.Removal == "-1":
+                elif StatusEffect.Removal == "-1":
                     StatusEffect.Count -= 1
-                if StatusEffect.Removal == "Fairy":
+                elif StatusEffect.Removal == "Fairy":
                     Character.Health -= StatusEffect.Count
                     StatusEffect.Count = int((1/2) * StatusEffect.Count)
+                elif StatusEffect.Removal == "Dormant Ash":
+                    if StatusEffect.name == "Dormant Ash Boost":
+                        StatusEffect.name = "Ash Boost"
+                    else:
+                        StatusEffect.Count = 0
+
             if StatusEffect.Count == 0:
                 RemovalList.append(StatusEffect)
                 

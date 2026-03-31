@@ -1864,7 +1864,7 @@ def CreateBrotherStage():
     
     SpeedDiceList = []
     CreateSpeedDie(1,3,SpeedDiceList)
-    DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Quickness","E-endure","E-endure","D-dried Up","Only Live Once","Only Live Once"])
+    DeckList = CreateDeckList(["Dodge and Strike","Dodge and Strike","Quickness","E-endure","E-endure","D-dried Up","YOLO","YOLO"])
     ResistanceList = [0,1,0,1,2,0]
     AttributedPassives = []
     Consta = CreateCharacter(140,225,2,False,SpeedDiceList,DeckList,3,22,6,ResistanceList,"Consta",Part.ListOfFighters,"Brotherhood",AttributedPassives,None)
@@ -2400,7 +2400,7 @@ def CreateScorchedGirlStage():
     CreateCard("blue",4,"Fourth Match Flame",DiceList,None,None)
     
     #creating the abnormailty pages #name,level,positive,single target,description,effect(s),list
-    CreateAbnormailyPage("Ashes",1,True,True,"On hit inflict 1-3 burn; On hit 40% chance to gain effect: On hit inflict 1 burn next scene (does not stack)",["Create PassiveDealtCreate Status1-3Burn","Ashes"],Fight.RewardCards)
+    CreateAbnormailyPage("Ashes",1,True,True,"On hit inflict 1-3 burn; On hit 40% chance to gain effect: On hit inflict 1 burn next scene (does not stack)",["Create PassiveDealtAllCreate Status1-3Burn","Ashes"],Fight.RewardCards)
     CreateAbnormailyPage("Footfalls",2,False,False,"On clash, if the librarian's hp is 20% or lower, deal 30% target's max hp (max 36) and inflict 1-3 burn, then die",["Footfalls"],Fight.RewardCards)
     CreateAbnormailyPage("Matchlight",1,False,True,"First 2 pages you use after this gain matchlight: on use gain ember; increase first die max by ember; at 4+ ember 25% chance to take X damage, X = ember",["Matchlight"],Fight.RewardCards)
     
@@ -2523,7 +2523,7 @@ def CreateDie(min,max,type,diceList,Effect,Trigger,Target,Counter):
     if Trigger != None:
         
         Description = ParseForDescription(Effect,Trigger,Target)
-        print(Description)
+        #print(Description)
     
     Die.AddEffectDescription = None
         
@@ -2579,7 +2579,7 @@ def CreateLightSprite(Character):
 def CreateEmotionBar(Character,List):
 
     EmotionReq = 3 + 2 * Character.EmotionLevel
-    print("emotion req is " + str(EmotionReq))
+    #print("emotion req is " + str(EmotionReq))
     FullEmotionBar = Group()
     StartX = 0
     
@@ -4357,13 +4357,13 @@ def AddPassiveEffect(Character,Passive):
     PassiveEffect.name = effect
     PassiveEffect.Count = 1
     PassiveEffect.BaseEffect = False
-    PassiveEffect.Exceptional = True
+    #PassiveEffect.Exceptional = True
     PassiveEffect.Icon = None
     
     CreatePassive = False
     if effect.startswith("Create Passive"):
         effect = effect[14:]
-        PassiveEffect.Exceptional = True
+        #PassiveEffect.Exceptional = True
         
     elif Passive == "Pale Hands":
         PassiveEffect.Trigger = "Dealt"
@@ -4383,6 +4383,13 @@ def AddPassiveEffect(Character,Passive):
         PassiveEffect.Trigger = "Dealt"
         PassiveEffect.Type = "All"
         #40% chance to gain non stackable Offensive dice inflict 1 burn
+    elif Passive == "Dormant Ash Boost":
+        PassiveEffect.Trigger = "Dealt"
+        PassiveEffect.Type = "All"
+        PassiveEffect.RemovalTrigger = "EndTurn"
+        PassiveEffect.Removal = "Dormant Ash"
+        PassiveEffect.Icon = Rect(0,0,15,15,fill="orange",border = "grey")
+        PassiveEffect.add(PassiveEffect.Icon)
     elif Passive == "Matchlight":
         PassiveEffect.Trigger = "Use Card"
         PassiveEffect.TrackedCards = []
@@ -4471,12 +4478,13 @@ def AddPassiveEffect(Character,Passive):
         StartChar = effect[0:1]
         if StartChar.isdigit():
             PassiveEffect.Min = int(StartChar)
-            effect = effect[2:]
+            effect = effect[2:] #skips the dash ex: 1-3
         StartChar = effect[0:1]
         if StartChar.isdigit():
             PassiveEffect.Max = int(StartChar)
             effect = effect[1:]
         PassiveEffect.StatusEffect = effect
+        print("Passive Status creator will inflict:" + effect)
 
 
 
@@ -4661,7 +4669,7 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
                 
                 if Effect.StatusEffect != None:
                     for Count in range(Chance2):
-                        if Effect.StatusEffectSelf:
+                        if Effect.StatusEffectToSelf:
                             AddStatusEffect(RecievingCharacter,Effect.StatusEffect,Effect.StatusNext)
                         else:
                             AddStatusEffect(DealingCharacter,Effect.StatusEffect,Effect.StatusNext)
@@ -4708,11 +4716,13 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
                     ActivatePassive = True
                         
             if ActivatePassive:
+                print("triggering dealt passive " + Effect.name)
                 Chance2 = random.randint(Effect.Min, Effect.Max)
                 
                 if Effect.StatusEffect != None:
+                    print("Passive Status creator is inflicting in combat:" + str(Chance2) + Effect.StatusEffect)
                     for Count in range(Chance2):
-                        if Effect.StatusEffectSelf:
+                        if Effect.StatusEffectToSelf:
                             AddStatusEffect(DealingCharacter,Effect.StatusEffect,Effect.StatusNext)
                         else:
                             AddStatusEffect(RecievingCharacter,Effect.StatusEffect,Effect.StatusNext)
@@ -4735,27 +4745,12 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
                     if FoundAshBoost == False:
                         print("adding Dormant ash boost") #I would love to use addpassive but this needs to be impermanent
                         EffectIcon = Group()
-                        EffectIcon.Trigger = "Dealt"
-                        EffectIcon.Type = "All"
-                        EffectIcon.Min = 0
-                        EffectIcon.Max = 0
-                        EffectIcon.Modifier = 0
-                        EffectIcon.StatusEffect = None
-                        EffectIcon.RemovalTrigger = "EndTurn"
-                        EffectIcon.Removal = "Dormant Ash"
-                        EffectIcon.name = "Dormant Ash Boost"
-                        EffectIcon.Count = 1
-                        EffectIcon.BaseEffect = False
-                        Symbol = Rect(0,0,15,15,fill="orange",border = "grey")
-                        EffectIcon.add(Symbol)
-                        EffectIcon.Text = Label("1",10,10)
-                        EffectIcon.add(EffectIcon.Text)
-                        DealingCharacter.StatusEffects.append(EffectIcon)
-                        print("length of status is now: " + str(len(DealingCharacter.StatusEffects)))
-                        DealingCharacter.add(EffectIcon)
+                        AddPassiveEffect(DealingCharacter,"Dormant Ash Boost")
+
                         UpdateStatusEffects(DealingCharacter)
 
             elif Effect.name == "Ash Boost":
+                print("burning with ash boost")
                 AddStatusEffect(RecievingCharacter,"Burn",False)
                 
             elif Effect.name == "Pale Hands":
@@ -5410,6 +5405,7 @@ def UpdateResolution():
 #right now things;
 #make scorched girl abnos work
 #next stages are chef office, into forsaken murderer and lulu office
+#ashes dont inflict burn on their own rn, end of fight team level up causes problems, second level still shows both
 
 #far off
 #have character's page be clickable to go into attribution

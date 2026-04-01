@@ -4115,49 +4115,90 @@ def ResolveDieValueChanges(SpeedDie):
         Modifier = 0
         for Effect in SpeedDie.ConnectedCharacter.StatusEffects:
             if Effect.BaseEffect:
-                if Die.type == "Slash" or Die.type == "Blunt" or Die.type == "Pierce":
+                if Die.type == "slash" or Die.type == "blunt" or Die.type == "pierce":
                     if Effect.name == "Strength":
                         Modifier += Effect.Count
                     elif Effect.name == "Feeble":
                         Modifier -= Effect.Count
                         
-                elif Die.type == "Evade" or Die.type == "Block":
+                elif Die.type == "evade" or Die.type == "block":
                     if Effect.name == "Endurance":
                         Modifier += Effect.Count
                     elif Effect.name == "Disarm":
                         Modifier -= Effect.Count
                         
             elif Effect.Trigger == "Rolled":
+                print("trying to Activate rolled passive")
                 ActivatePassive = False
                 if Effect.Type == "All":
                     ActivatePassive = True
                 elif Effect.Type == "Offensive":
-                    if Die.type == "Slash" or Die.type == "Blunt" or Die.type == "Pierce":
+                    if Die.type == "slash" or Die.type == "blunt" or Die.type == "pierce":
                         ActivatePassive = True
                 elif Effect.Type == "Defensive":
-                    if Die.type == "Evade" or Die.type == "Block":
+                    print(Die.type)
+                    if Die.type == "evade" or Die.type == "block":
+                        print("how about this")
                         ActivatePassive = True
                 elif Effect.Type == "Slash":
-                    if Die.type == "Slash":
+                    if Die.type == "slash":
                         ActivatePassive = True
                 elif Effect.Type == "Blunt":
-                    if Die.type == "Blunt":
+                    if Die.type == "blunt":
                         ActivatePassive = True
                 elif Effect.Type == "Pierce":
-                    if Die.type == "Pierce":
+                    if Die.type == "pierce":
                         ActivatePassive = True
                 elif Effect.Type == "Block":
-                    if Die.type == "Block":
+                    if Die.type == "block":
                         ActivatePassive = True
                 elif Effect.Type == "Evade":
-                    if Die.type == "Evade":
+                    if Die.type == "evade":
                         ActivatePassive = True
                         
                 if ActivatePassive:
+                    print("Activating rolled passive")
                     Chance2 = random.randint(Effect.Min, Effect.Max)
                     Chance2 *= Effect.Modifier
                     Modifier += Chance2
-                    
+
+                if Effect.name == "Matchlight":
+                    if len(PassiveEffect.UsedCards) == 0 or not Contains(PassiveEffect.UsedCards,SpeedDie.HeldPage): #makes sure it only runs once per page
+                        #if you dont have 1,2 add them
+                        if len(PassiveEffect.TrackedCards) == 0:
+                            PassiveEffect.TrackedCards.add(SpeedDie.HeldPage)
+                            SpeedDie.HeldPage.border = "orange"
+                        elif len(PassiveEffect.TrackedCards) == 1:
+                            if SpeedDie.HeldPage != PassiveEffect.TrackedCards[0]:
+                                PassiveEffect.TrackedCards.add(SpeedDie.HeldPage)
+                                SpeedDie.HeldPage.border = "orange"
+
+                        if Contains(PassiveEffect.TrackedCards,SpeedDie.HeldPage):
+                            #check if the page is a matchlight page
+                            Found = None
+                            for SearchEffect in SpeedDie.ConnectedCharacter.StatusEffects:
+                                if not SearchEffect.BaseEffect and SearchEffect.name == "Ember": 
+                                    #look for ember
+                                    Found = SearchEffect
+                            if Found == None:
+                                #if none create it
+                                AddPassiveEffect(SpeedDie.ConnectedCharacter,"Ember")
+                                UpdateStatusEffects(SpeedDie.ConnectedCharacter)
+                            else:
+                                Die.MaxModifier += Found.Count
+                                #otherwise raise max of this die by it
+                                if Found.Count >= 4:
+                                    #also check for 4+ to see if damage
+                                    Chance2 = random.randint(1,4)
+                                    if Chance2 == 4:
+                                        SpeedDie.ConnectedCharacter.Health -= Found.Count
+                                        Sprite = SpeedDie.ConnectedCharacter.CharacterSprite
+                                        CreateParticle(Sprite.centerX,Sprite.centerY,30,"orange")
+                                    #25% chance to explode
+                                #and finally increment ember
+                                Found.Count += 1
+
+                            PassiveEffect.UsedCards.add(SpeedDie.HeldPage)                    
                                
         if Modifier != 0:
             Die.MinModifier += Modifier
@@ -4391,8 +4432,11 @@ def AddPassiveEffect(Character,Passive):
         PassiveEffect.Icon = Rect(0,0,15,15,fill="orange",border = "grey")
         PassiveEffect.add(PassiveEffect.Icon)
     elif Passive == "Matchlight":
-        PassiveEffect.Trigger = "Use Card"
+        PassiveEffect.Trigger = "Rolled"
+        PassiveEffect.RemovalTrigger = "EndTurn"
+        PassiveEffect.Removal = "Matchlight Reset"
         PassiveEffect.TrackedCards = []
+        PassiveEffect.UsedCards = []
         
     if PassiveEffect.Icon == None:
         PassiveEffect.Icon = Circle(0,0,10,fill = "yellow",border = "red")
@@ -4643,25 +4687,25 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
             if Effect.Type == "All":
                 ActivatePassive = True
             elif Effect.Type == "Offensive":
-                if type == "Slash" or type == "Blunt" or type == "Pierce":
+                if type == "slash" or type == "blunt" or type == "pierce":
                     ActivatePassive = True
             elif Effect.Type == "Defensive":
-                if type == "Evade" or type == "Block":
+                if type == "evade" or type == "block":
                     ActivatePassive = True
             elif Effect.Type == "Slash":
-                if type == "Slash":
+                if type == "slash":
                     ActivatePassive = True
             elif Effect.Type == "Blunt":
-                if type == "Blunt":
+                if type == "blunt":
                     ActivatePassive = True
             elif Effect.Type == "Pierce":
-                if type == "Pierce":
+                if type == "pierce":
                     ActivatePassive = True
             elif Effect.Type == "Block":
-                if type == "Block":
+                if type == "block":
                     ActivatePassive = True
             elif Effect.Type == "Evade":
-                if type == "Evade":
+                if type == "evade":
                     ActivatePassive = True
                         
             if ActivatePassive:
@@ -4694,25 +4738,25 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
             if Effect.Type == "All":
                 ActivatePassive = True
             elif Effect.Type == "Offensive":
-                if type == "Slash" or type == "Blunt" or type == "Pierce":
+                if type == "slash" or type == "blunt" or type == "pierce":
                     ActivatePassive = True
             elif Effect.Type == "Defensive":
-                if type == "Evade" or type == "Block":
+                if type == "evade" or type == "block":
                     ActivatePassive = True
             elif Effect.Type == "Slash":
-                if type == "Slash":
+                if type == "slash":
                     ActivatePassive = True
             elif Effect.Type == "Blunt":
-                if type == "Blunt":
+                if type == "blunt":
                     ActivatePassive = True
             elif Effect.Type == "Pierce":
-                if type == "Pierce":
+                if type == "pierce":
                     ActivatePassive = True
             elif Effect.Type == "Block":
-                if type == "Block":
+                if type == "block":
                     ActivatePassive = True
             elif Effect.Type == "Evade":
-                if type == "Evade":
+                if type == "evade":
                     ActivatePassive = True
                         
             if ActivatePassive:
@@ -4744,7 +4788,6 @@ def TakeDamage(RecievingCharacter,DealingCharacter,Damage,type):
                             FoundAshBoost = True
                     if FoundAshBoost == False:
                         print("adding Dormant ash boost") #I would love to use addpassive but this needs to be impermanent
-                        EffectIcon = Group()
                         AddPassiveEffect(DealingCharacter,"Dormant Ash Boost")
 
                         UpdateStatusEffects(DealingCharacter)
@@ -5180,6 +5223,8 @@ def ResetAllCharacterPositions():
                         StatusEffect.name = "Ash Boost"
                     else:
                         StatusEffect.Count = 0
+                elif StatusEffect.Removal == "Matchlight Reset":
+                    StatusEffect.UsedCards.clear()
 
             if StatusEffect.Count == 0:
                 RemovalList.append(StatusEffect)
@@ -5403,9 +5448,10 @@ def UpdateResolution():
     app.ContinueText = Label("Press Space To Continue",app.width/2,app.height/2 + 50 * app.YScreenDialation, fill = "white",visible = False)
 
 #right now things;
-#make scorched girl abnos work
+#make machlight, scorched girl abno, work
 #next stages are chef office, into forsaken murderer and lulu office
-#ashes dont inflict burn on their own rn, end of fight team level up causes problems, second level still shows both
+#also need to remove the light as soon as starts to use the page not just refund when staggered
+#bugs: end of fight team level up causes problems, second level still shows both
 
 #far off
 #have character's page be clickable to go into attribution

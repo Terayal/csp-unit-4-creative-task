@@ -65,6 +65,7 @@ app.StagesUnlocked = 1
 app.FightsUnlocked = 1
 app.CurrentEmotionLevelCap = 1
 app.CurrentTeamEmotionLevel = 0
+app.ChosenAbnoPages = []
 app.SinglePressLock = False
 app.StoryStages = []
 app.StageSymbols = []
@@ -96,10 +97,22 @@ def onMousePress(x,y):
                     if Button.hits(x,y):
                         if Button.Type == "Page":
                             app.ChosenAbnoPage = Button.ConnectedPage
-                            app.PlayerConfirmStage = 8
+                            app.ChosenAbnoPages.append(Button.ConnectedPage) #adds to list to remove from options 
                             DeleteTempButtons()
-                            ReminderText = Label("Please pick a character to apply to!!!",200 * app.XScreenDialation,350 * app.YScreenDialation,size = 20)
-                            app.TemporaryButtons.append(ReminderText)
+                            if app.ChosenAbnoPage.SingleTarget:
+                                app.PlayerConfirmStage = 8
+                                ReminderText = Label("Please pick a character to apply to!!!",200 * app.XScreenDialation,350 * app.YScreenDialation,size = 20)
+                                app.TemporaryButtons.append(ReminderText)
+                            else:
+                                for ChosenCharacter in PlayerCharacters: #for all ally pages just run chosen player on all
+                                    print("Chose " + Character.name)
+                                    for Effect in app.ChosenAbnoPage.Effect:
+                                        AddPassiveEffect(ChosenCharacter,Effect)
+                                ResetAllCharacterPositions()
+                                app.PlayerConfirmStage = 0
+                                for Button in app.TemporaryButtons:
+                                    Button.visible = False
+                                app.TemporaryButtons.clear()
                             
             elif app.PlayerConfirmStage == 8:
                 print("choosing a character for abno page")
@@ -1127,6 +1140,7 @@ def ContinueAfterFight():
 def StartBattle(Fight):
     #hides all the menuing
     XButton.visible = False
+    app.ChosenAbnoPages = [] 
     print("Let it begin!")
     #for Floor in app.Floors:
     for Stage in app.StoryStages:# + app.EnlightenmentStages:
@@ -1320,8 +1334,8 @@ def FightEnd(Victory):
         Particle.YVel = 0
         Particle.Fade = 2
         app.FadingParticles.append(Particle)
-        
-        app.PlayerConfirmStage = 0
+        if not app.PlayerConfirmStage == 7: #should fix mid stage emotion level ups breaking!
+            app.PlayerConfirmStage = 0
         #adds next enemies
         for Character in app.CurrentFight.ListOfParts[app.CurrentPart].ListOfFighters:
             print("Character added " + Character.name)
@@ -2417,7 +2431,7 @@ def CreateScorchedGirlStage():
     DeckList = CreateDeckList(["Broken Hope","Ember"])
     ResistanceList = [0,0,1,0,0,2]
     AttributedPassives = []
-    Match1 = CreateCharacter(100,100,2,False,SpeedDiceList,DeckList,3,25,15,ResistanceList,"Match1",Part.ListOfFighters,"Match",AttributedPassives,3)
+    Match1 = CreateCharacter(100,130,2,False,SpeedDiceList,DeckList,3,25,15,ResistanceList,"Match1",Part.ListOfFighters,"Match",AttributedPassives,3)
     print("Match1 done")
 
     SpeedDiceList = []
@@ -2631,6 +2645,7 @@ def CreateCard(color,cost,name,dice,AddToList,OnUseEffect):
     CostNumber = Label(cost,10,10)
     FullCard.cost = cost
     NameBox = Rect(0,18,app.CardWidth/2,12, fill=color)
+    FullCard.CardBox = NameBox
     #NameBox.rotateAngle = -10
     #print(len(name))
     FullCard.fontsize = 15 - int(len(name)/app.FontSizeModifier)
@@ -2721,6 +2736,7 @@ def CopyCard(Card,NewList):
     CostNumber = Label(Card.cost,10,10)
     FullCard.cost = Card.cost
     NameBox = Rect(0,18,app.CardWidth/2,12, fill= Card.color)
+    FullCard.CardBox = NameBox
     NameText = Label(Card.name,NameBox.centerX,NameBox.centerY, size = Card.fontsize)
     FullCard.name = Card.name
     FullCard.add(Image,CostCircle,CostNumber,NameBox,NameText)
@@ -3685,7 +3701,21 @@ def ClashBetweenSpeedDice(FirstDie,SecondDie):
             ClearActingDice()
             
         
-        
+def TriggerClashPassives(Character1,Character2):
+    for Effect in Character1.StatusEffects:
+        if Effect.BaseEffect == False and Effect.Trigger == "Clash": #I was thinking of also doing types but timing problems with bleed
+            print("Clash trigger passive activating: " + Effect.name)
+            if Effect.name == "Footfalls":
+                if Character1.Health <= Character1.MaxHealth/5:
+                    FootfallsDamage = Character2.MaxHealth * 3 /10 
+                    if FootfallsDamage > 36:
+                        FootfallsDamage = 36
+                    Character2.Health -= FootfallsDamage
+                    Chance2 = random.randint(1,3)
+                    for Count in range (Chance2):
+                        AddStatusEffect(Character2,"Burn",False)
+                    Character1.Health = 0
+
 
 def ClashingWithExtraDice(FirstDie, ExtraDieList, ExtraDiceCharacter):
     
@@ -3693,19 +3723,7 @@ def ClashingWithExtraDice(FirstDie, ExtraDieList, ExtraDiceCharacter):
     ExtraDieList[0].visible = True
 
     #before dice are rolled and bro dies to bleed
-    for Effect in FirstDie.ConnectedCharacter.StatusEffects:
-        if Effect.BaseEffect == False and Effect.Trigger == "Clash": #I was thinking of also doing types but timing problems with bleed
-                print("Clash trigger passive activating: " + Effect.name)
-                if Effect.name == "Footfalls":
-                    if FirstDie.ConnectedCharacter.Health <= FirstDie.ConnectedCharacter.MaxHealth/5:
-                        FootfallsDamage = ExtraDiceCharacter.MaxHealth * 3 /10 
-                        if FootfallsDamage > 36:
-                            FootfallsDamage = 36
-                        ExtraDiceCharacter.Health -= FootfallsDamage
-                        Chance2 = random.randint(1,3)
-                        for Count in range (Chance2):
-                            AddStatusEffect(ExtraDiceCharacter,"Burn",False)
-                        FirstDie.ConnectedCharacter.Health = 0
+    TriggerClashPassives(FirstDie.ConnectedCharacter,ExtraDiceCharacter)
     
     FirstDieResult = RollDie(FirstDie.HeldPage.DiceList[0],FirstDie.ConnectedCharacter)
     FirstDieType = FirstDie.HeldPage.DiceList[0].type
@@ -3831,6 +3849,10 @@ def ClashingWithExtraDice(FirstDie, ExtraDieList, ExtraDiceCharacter):
 def ContestOfTwoDice(FirstDie,SecondDie):
     
     print("Clash!!!")
+
+    #before dice are rolled and bro dies to bleed
+    TriggerClashPassives(FirstDie.ConnectedCharacter,SecondDie.ConnectedCharacter)
+
     ShowPagesClashBetweenPages(FirstDie)
     
     FirstDieResult = RollDie(FirstDie.HeldPage.DiceList[0],FirstDie.ConnectedCharacter)
@@ -4163,17 +4185,17 @@ def ResolveDieValueChanges(SpeedDie):
                     Modifier += Chance2
 
                 if Effect.name == "Matchlight":
-                    if len(PassiveEffect.UsedCards) == 0 or not Contains(PassiveEffect.UsedCards,SpeedDie.HeldPage): #makes sure it only runs once per page
+                    if len(Effect.UsedCards) == 0 or not Contains(Effect.UsedCards,SpeedDie.HeldPage): #makes sure it only runs once per page
                         #if you dont have 1,2 add them
-                        if len(PassiveEffect.TrackedCards) == 0:
-                            PassiveEffect.TrackedCards.add(SpeedDie.HeldPage)
-                            SpeedDie.HeldPage.border = "orange"
-                        elif len(PassiveEffect.TrackedCards) == 1:
-                            if SpeedDie.HeldPage != PassiveEffect.TrackedCards[0]:
-                                PassiveEffect.TrackedCards.add(SpeedDie.HeldPage)
-                                SpeedDie.HeldPage.border = "orange"
+                        if len(Effect.TrackedCards) == 0:
+                            Effect.TrackedCards.append(SpeedDie.HeldPage)
+                            SpeedDie.HeldPage.CardBox.border = "orange"
+                        elif len(Effect.TrackedCards) == 1:
+                            if SpeedDie.HeldPage != Effect.TrackedCards[0]:
+                                Effect.TrackedCards.append(SpeedDie.HeldPage)
+                                SpeedDie.HeldPage.CardBox.border = "orange"
 
-                        if Contains(PassiveEffect.TrackedCards,SpeedDie.HeldPage):
+                        if Contains(Effect.TrackedCards,SpeedDie.HeldPage):
                             #check if the page is a matchlight page
                             Found = None
                             for SearchEffect in SpeedDie.ConnectedCharacter.StatusEffects:
@@ -4186,6 +4208,8 @@ def ResolveDieValueChanges(SpeedDie):
                                 UpdateStatusEffects(SpeedDie.ConnectedCharacter)
                             else:
                                 Die.MaxModifier += Found.Count
+                                print("ember increasing die max by " + str(Found.Count))
+                                UpdateDamageRange(Die)
                                 #otherwise raise max of this die by it
                                 if Found.Count >= 4:
                                     #also check for 4+ to see if damage
@@ -4198,7 +4222,7 @@ def ResolveDieValueChanges(SpeedDie):
                                 #and finally increment ember
                                 Found.Count += 1
 
-                            PassiveEffect.UsedCards.add(SpeedDie.HeldPage)                    
+                            Effect.UsedCards.append(SpeedDie.HeldPage)                    
                                
         if Modifier != 0:
             Die.MinModifier += Modifier
@@ -4437,6 +4461,9 @@ def AddPassiveEffect(Character,Passive):
         PassiveEffect.Removal = "Matchlight Reset"
         PassiveEffect.TrackedCards = []
         PassiveEffect.UsedCards = []
+    elif Passive == "Ember":
+        PassiveEffect.Icon = Rect(0,0,15,15,fill="darkGrey",border = "orange")
+        PassiveEffect.add(PassiveEffect.Icon)
         
     if PassiveEffect.Icon == None:
         PassiveEffect.Icon = Circle(0,0,10,fill = "yellow",border = "red")
@@ -5221,6 +5248,7 @@ def ResetAllCharacterPositions():
                 elif StatusEffect.Removal == "Dormant Ash":
                     if StatusEffect.name == "Dormant Ash Boost":
                         StatusEffect.name = "Ash Boost"
+                        StatusEffect.fill = "red"
                     else:
                         StatusEffect.Count = 0
                 elif StatusEffect.Removal == "Matchlight Reset":
@@ -5281,7 +5309,6 @@ def CheckForEmotionLevelup(Character):
 
         
 def LevelUpTeamEmotionLevel(TotalPositive,TotalNegative):
-    Chance = random.randint(0,TotalPositive + TotalNegative)
     #it is actually 3 levels not 5 with 1-2 = level 1  3-4 = level 2 5 = level3
     if app.CurrentTeamEmotionLevel == 0 or app.CurrentTeamEmotionLevel == 1:
         EmotionOptions = app.CurrentFloor.EmotionPayoffs[0]
@@ -5289,16 +5316,20 @@ def LevelUpTeamEmotionLevel(TotalPositive,TotalNegative):
         EmotionOptions = app.CurrentFloor.EmotionPayoffs[1]
     elif app.CurrentTeamEmotionLevel == 5:
         EmotionOptions = app.CurrentFloor.EmotionPayoffs[2]
+    
+    Chance = random.randint(0,TotalPositive + TotalNegative)
+
     if len(EmotionOptions) > 0:
         DisplayedOptions = []
         PositiveList = []
-        for Option in EmotionOptions:
-            if Option.Positive:
-                PositiveList.append(Option)
         NegativeList = []
         for Option in EmotionOptions:
-            if not Option.Positive:
-                NegativeList.append(Option)
+            if not Contains(app.ChosenAbnoPages,Option)
+                if Option.Positive:
+                    PositiveList.append(Option)
+                else:
+                    NegativeList.append(Option)
+                    
 
         for RunItThrice in range(3):
             if len(PositiveList) <= 0 and len(NegativeList) <= 0:

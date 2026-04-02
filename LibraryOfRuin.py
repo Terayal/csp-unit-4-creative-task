@@ -5324,7 +5324,7 @@ def LevelUpTeamEmotionLevel(TotalPositive,TotalNegative):
         PositiveList = []
         NegativeList = []
         for Option in EmotionOptions:
-            if not Contains(app.ChosenAbnoPages,Option)
+            if not Contains(app.ChosenAbnoPages,Option):
                 if Option.Positive:
                     PositiveList.append(Option)
                 else:

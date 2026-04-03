@@ -7,7 +7,7 @@ app.setMaxShapeCount(40000)
 import random
 import math
 app.Startup = True
-app.Debug = True
+app.Debug = False
 app.PlayerConfirm = False
 app.PlayerConfirmStage = 0
 app.CardWidth = 110
@@ -1230,9 +1230,7 @@ def SupplementLibrary(Character):
         
 def FightEnd(Victory):
     print("ending fight")
-    ResetAllCharacterPositions()
-    
-    
+    ResetAllCharacterPositions() #this levels up team which we dont want if victory with no after   
         
     if len(app.CurrentFight.ListOfParts) - 1 <= app.CurrentPart or not Victory:
         print("fight completed")
@@ -1602,16 +1600,16 @@ def HideHand(Character):
 #Setup
 
 def CreateStoryStages():
-    
-    #second act stages
-    #CreateChefStage()
-
+    #the order of the main story stages really matters
     #first act stages and abnos
     CreateRatsStage()
     CreateYunStage()
     CreateBrotherStage()
     CreateHookStage()
     
+    #second act stages
+    CreateChefStage()
+
     CreateBloodBathStage()
     CreateScorchedGirlStage()
     
@@ -1664,7 +1662,113 @@ def AssignSymbol(SpriteName):
         DefaultSprite.visible = False
         return DefaultSprite
         
+def CreateChefStage():
+    
+    Battle = Group()
+    ListOfFights = []
+    
+    Fight = Group()
+    Fight.FightNumber = 0
+    Fight.RewardCards = []
+    Fight.RewardCharacters = []
+    Fight.ListOfParts = []
+    
+    Part = Group()
+    Part.ListOfFighters = []
+    
+    print("creating chef's cards")
+    
+    for Spam in range(2):
+        SpeedDiceList = []
+        CreateSpeedDie(1,4,SpeedDiceList)
+        ResistanceList = [2,1,0,2,1,0]
+        AttributedPassives = []
+        CreateCharacterCard("Jack","green",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters,"Chef",AttributedPassives)
+    for Spam in range(2):
+        SpeedDiceList = []
+        CreateSpeedDie(1,4,SpeedDiceList)
+        ResistanceList = [0,2,1,0,2,1]
+        AttributedPassives = []
+        CreateCharacterCard("Pierre","green",SpeedDiceList,3,42,22,ResistanceList,Fight.RewardCharacters,"Chef",AttributedPassives)
+    
+    print("creating chef reward cards")
+    
+    DiceList = []
+    CreateDie(2,6,"slash",DiceList,"Next2Bind","On Hit","Enemy",False) #hit 2 bind
+    CreateDie(2,5,"blunt",DiceList,None,None,None,False)
+    CreateCard("green",2,"Ingredient Hunt",DiceList,Fight.RewardCards,None)
+    
+    DiceList = []
+    CreateDie(1,6,"blunt",DiceList,"NextParalysis","On Hit","Enemy",False) #hit paralysis
+    CreateDie(1,4,"evade",DiceList,None,None,None,False)
+    CreateCard("green",1,"Trim Ingerdients",DiceList,Fight.RewardCards,None)
+    
+    DiceList = []
+    CreateDie(3,4,"pierce",DiceList,"NextBleed","On Hit","Enemy",False) #on hit 1 bleed
+    CreateCard("blue",0,"Appetite",DiceList,Fight.RewardCards,None)
+    
+    DiceList = []
+    CreateDie(2,6,"blunt",DiceList,"X=BleedRegain Health","On Hit","Self",False) #hit gain health based on bleed 
+    CreateDie(2,3,"block",DiceList,None,None,None,False)
+    CreateCard("blue",1,"Cruelty",DiceList,Fight.RewardCards,None)
+    
+    DiceList = []
+    CreateDie(3,4,"slash",DiceList,None,None,None,False)
+    CreateDie(1,12,"evade",DiceList,None,None,None,False)
+    CreateCard("purple",1,"Keep It Fresh",DiceList,Fight.RewardCards,None)
+    
+    DiceList = []
+    CreateDie(1,6,"pierce",DiceList,None,None,None,False)
+    CreateDie(4,4,"slash",DiceList,"4Regain Health","On Hit","Self",False) #hit gain 4 health
+    CreateCard("purple",1,"Cook Everything",DiceList,Fight.RewardCards,None) #Fight.RewardCards
+    
+    
+    
+    SpeedDiceList = []
+    CreateSpeedDie(2,5,SpeedDiceList)
+    DeckList = CreateDeckList(["Organ Harvesting","Organ Harvesting","Backstreets Shove","Claw Off","Run Away"])
+    ResistanceList = [0,0,1,0,1,0]
+    AttributedPassives = []
+    Pierre = CreateCharacter(170,105,2,False,SpeedDiceList,DeckList,3,55,18,ResistanceList,"Pierre",Part.ListOfFighters,"Chef",AttributedPassives,1)
+    
+    print("Pierre done")
+    
+    SpeedDiceList = []
+    CreateSpeedDie(2,5,SpeedDiceList)
+    DeckList = CreateDeckList(["Rat's Guide","Rat's Guide","Backstreets Shove","Claw Off","Run Away"])
+    ResistanceList = [0,1,0,0,2,1]
+    AttributedPassives = []
+    Jack = CreateCharacter(120,170,2,False,SpeedDiceList,DeckList,3,55,15,ResistanceList,"Jack",Part.ListOfFighters,"Chef",AttributedPassives,1)
+    
+    print("Jack done")
+    
+    Fight.ListOfParts.append(Part)
+    ListOfFights.append(Fight)
+    
+    BattleContainer = Rect(-80,-20,100 + len(ListOfFights) * 50,80,fill = "black", border = "orange")
+    Battle.add(BattleContainer)
+    
+    index = 0
+    for Fight in ListOfFights:
+        FightIcon = Rect(index * 55,0,40,40,fill = "black", border = "orange")
+        FightIcon.rotateAngle = -45
+        FightNumber = Label(str(index + 1),FightIcon.centerX,FightIcon.centerY,fill = "orange")
         
+        #Battle.Icon = FightIcon
+        Battle.add(FightIcon)
+        Battle.add(FightNumber)
+        FightIcon.Text = FightNumber
+        Fight.FightIcon = FightIcon
+        index += 1
+    
+    Battle.ListOfFights = ListOfFights
+    Battle.FightsUnlocked = 1
+    Battle.visible = False
+    Battle.StageNum = 5
+    Battle.IsSpecialStage = False
+    Battle.EmotionLevelCap = 2
+    app.StoryStages.append(Battle) 
+
 def CreateHookStage():
     
     Battle = Group()
@@ -1812,7 +1916,7 @@ def CreateHookStage():
     Battle.ListOfFights = ListOfFights
     Battle.FightsUnlocked = 1
     Battle.visible = False
-    Battle.StageNum = 2
+    Battle.StageNum = 4
     Battle.IsSpecialStage = False
     Battle.EmotionLevelCap = 2
     app.StoryStages.append(Battle)
@@ -4261,6 +4365,20 @@ def TriggerDieEffect(CombatDie,TriggerCharacter,EnemyCharacter):
         
     elif StartChar == "X":
         print("lol this is complex so WIP")
+        #remove expected X=
+        AdditionalEffect = AdditionalEffect[2:]
+        AnalyzedCharacter = None
+        if AdditionalEffect.startswith("Self"):
+            AnalyzedCharacter = TriggerCharacter
+        else:
+            AnalyzedCharacter = EnemyCharacter
+        X = 0
+        for StatusEffect in AnalyzedCharacter.StatusEffects:
+            if AdditionalEffect.startswith(StatusEffect.name):
+                X = StatusEffect.Count
+        Potency = X
+
+
         
     NextTurnActivate = False
     if AdditionalEffect.startswith("Next"):
@@ -5479,10 +5597,11 @@ def UpdateResolution():
     app.ContinueText = Label("Press Space To Continue",app.width/2,app.height/2 + 50 * app.YScreenDialation, fill = "white",visible = False)
 
 #right now things;
-#make machlight, scorched girl abno, work
 #next stages are chef office, into forsaken murderer and lulu office
 #also need to remove the light as soon as starts to use the page not just refund when staggered
-#bugs: end of fight team level up causes problems, second level still shows both
+
+#bug if fight end and no more and emotion level up happen at the same time, it shows abno as background and when clicked breaks dissapears everything 
+#this is bec reset all pos is at the start of fight end 
 
 #far off
 #have character's page be clickable to go into attribution
@@ -5492,6 +5611,7 @@ def UpdateResolution():
 #add instructions, make set positions template
 #fix fixupcharacter is an acceptable bug for now
 #also add a rules page, and maybe eventually a save code system
+#wording for regain health die effects is kinda wacky so fix later?
 
 #also cards can be found easily on https://projectmoon.miraheze.org/wiki/Cards_(Library_of_Ruina)
 # type: python LibraryOfRuin.py to run

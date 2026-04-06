@@ -365,6 +365,7 @@ def onMousePress(x,y):
                     DisplayMainMenu()
                 elif app.Menu == "ProgressionTree":
                     app.Menu = "MainMenu"
+                    app.DeckBuilderYDisp = 0
                     for Stage in app.StoryStages:
                         Stage.visible = False
                     for Symbol in app.StageSymbols:
@@ -522,7 +523,7 @@ def onKeyPress(key):
         pass
     
 def onKeyHold(keys):
-    if app.Menu == "EditDeck" or app.Menu == "EditCharacter":
+    if app.Menu == "EditDeck" or app.Menu == "EditCharacter" or app.Menu == "ProgressionTree":
         for key in keys:
             if key == "up":
                 MoveDisplayCards(10)
@@ -694,7 +695,7 @@ def onStep():
 
 def DisplayProgressionTree():
     print("Displaying progression tree")
-    StartY = 300
+    StartY = 300 + app.DeckBuilderYDisp
     index = 1
     
     for Stage in app.StoryStages:
@@ -1089,8 +1090,12 @@ def SortLibrary(Library):
 def MoveDisplayCards(YDisp):
     print("moving editor +" + str(YDisp))
     app.DeckBuilderYDisp += YDisp
-    if app.DeckBuilderYDisp > 0:
-        app.DeckBuilderYDisp = 0
+    if app.Menu == "ProgressionTree":
+        if app.DeckBuilderYDisp < 0:
+            app.DeckBuilderYDisp = 0
+    else:
+        if app.DeckBuilderYDisp > 0:
+            app.DeckBuilderYDisp = 0
     if app.Menu == "EditDeck":
         DisplayDeckBuilder()
     elif app.Menu == "EditCharacter":
@@ -1098,6 +1103,9 @@ def MoveDisplayCards(YDisp):
     elif app.Menu == "Abnormalities":
         DeleteTempButtons()
         DisplayFloorAbnormalities(app.DisplayedFloor)
+    elif app.Menu == "ProgressionTree":
+        DeleteTempButtons()
+        DisplayProgressionTree()
         
         
 def DisplayDeckBuilder():
@@ -1170,7 +1178,7 @@ def StartBattle(Fight):
             EnemySpeedDice.append(Die)
             
     index = 0        
-    for WhyThisUseless in range(app.CharactersUnlocked): #adds all player characters
+    for Count in range(app.CharactersUnlocked): #adds all player characters
         Character = PlayerCharacters[index]
         if len(Character.Library) < 9:
             SupplementLibrary(Character)
@@ -1178,6 +1186,8 @@ def StartBattle(Fight):
         Character.Stagger = Character.MaxStagger
         UpdateBars(Character)
         AllFightingCharacters.append(Character)
+        Character.AdditionalInfoBoard.right = 400 * XScreenDialation
+        Character.AdditionalInfoBoard.top = 0
         for Die in Character.SpeedDice:
             PlayerSpeedDice.append(Die)
         index += 1
@@ -1230,8 +1240,7 @@ def SupplementLibrary(Character):
                 TargetCard = AllDisplayCards[2]
         
 def FightEnd(Victory):
-    print("ending fight")
-    ResetAllCharacterPositions() #this levels up team which we dont want if victory with no after   
+    print("ending fight")   
         
     if len(app.CurrentFight.ListOfParts) - 1 <= app.CurrentPart or not Victory:
         print("fight completed")
@@ -1303,6 +1312,8 @@ def FightEnd(Victory):
     else:
         print("next part lol")
         
+        ResetAllCharacterPositions() #this levels up team which we dont want if victory with no after or loss
+
         for Character in AllCharacters:
             DissapearCharacter(Character, False)
         
@@ -1730,7 +1741,7 @@ def CreateChefStage():
     DeckList = CreateDeckList(["Organ Harvesting","Organ Harvesting","Backstreets Shove","Claw Off","Run Away"])
     ResistanceList = [0,0,1,0,1,0]
     AttributedPassives = []
-    Pierre = CreateCharacter(170,105,2,False,SpeedDiceList,DeckList,3,55,18,ResistanceList,"Pierre",Part.ListOfFighters,"Chef",AttributedPassives,1)
+    Pierre = CreateCharacter(170,105,2,False,SpeedDiceList,DeckList,3,35,18,ResistanceList,"Pierre",Part.ListOfFighters,"Chef",AttributedPassives,1)
     
     print("Pierre done")
     
@@ -1739,7 +1750,7 @@ def CreateChefStage():
     DeckList = CreateDeckList(["Rat's Guide","Rat's Guide","Backstreets Shove","Claw Off","Run Away"])
     ResistanceList = [0,1,0,0,2,1]
     AttributedPassives = []
-    Jack = CreateCharacter(120,170,2,False,SpeedDiceList,DeckList,3,55,15,ResistanceList,"Jack",Part.ListOfFighters,"Chef",AttributedPassives,1)
+    Jack = CreateCharacter(120,170,2,False,SpeedDiceList,DeckList,3,35,15,ResistanceList,"Jack",Part.ListOfFighters,"Chef",AttributedPassives,1)
     
     print("Jack done")
     
@@ -5609,13 +5620,11 @@ def UpdateResolution():
     app.ContinueText = Label("Press Space To Continue",app.width/2,app.height/2 + 50 * app.YScreenDialation, fill = "white",visible = False)
 
 #right now things;
+#make sprites for brothers, chefs, hooks, matches, scorched girl
+#make scroll in progression tree
 #next stages are chef office, into forsaken murderer and lulu office
-#also need to remove the light as soon as starts to use the page not just refund when staggered
 
-#bug if fight end and no more and emotion level up happen at the same time, it shows abno as background and when clicked breaks dissapears everything 
-#this is bec reset all pos is at the start of fight end
-# also fix position of weakness board
-# also fix random target to be smarter and starting hook officers to have their actual decks
+# also fix random target to be smarter and Chef officers to have their actual decks
 
 #far off
 #have character's page be clickable to go into attribution

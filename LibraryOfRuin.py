@@ -1668,7 +1668,18 @@ def AssignSymbol(SpriteName):
         FullBloodBath = Group(Chalice,Blood)
         FullBloodBath.visible = False
         return FullBloodBath
-        
+    elif == "Chef":
+        Pie = Circle(200,200,100,fill = "black",border = "yellow",borderWidth = 8)
+        InnerPie1 = Oval(200,155,10,40,fill="orange")
+        InnerPie2 = Oval(240,175,10,40,fill="orange",rotateAngle = 180/4)
+        InnerPie3 = Oval(240,225,10,40,fill="orange",rotateAngle = 180/4 * 3)
+
+        InnerPie4 = Oval(200,245,10,40,fill="orange")
+        InnerPie5 = Oval(160,225,10,40,fill="orange",rotateAngle = 180/4)
+        InnerPie6 = Oval(160,175,10,40,fill="orange",rotateAngle = 180/4 * 3)
+
+        Bite = Polygon(90,231,200,200,155,295,fill = "red")
+
     else:
         DefaultSprite = Oval(200,200,30,45)
         DefaultSprite.visible = False

@@ -284,7 +284,6 @@ def onMousePress(x,y):
                                 app.CurrentFloor = SavedButton.ConnectedFloor
                                 app.CharactersUnlocked = app.CurrentFloor.CharactersUnlocked
                                 app.CurrentEmotionLevelCap = app.CurrentFloor.CurrentEmotionLevelCap
-
                                 DisplayFloorSelect()
                                 
                                 
@@ -298,6 +297,8 @@ def onMousePress(x,y):
                             if Icon.visible == True and Icon.hits(x,y):
                                 print("Starting battle!")
                                 app.CurrentFloor = Floor
+                                app.CharactersUnlocked = app.CurrentFloor.CharactersUnlocked
+                                app.CurrentEmotionLevelCap = app.CurrentFloor.CurrentEmotionLevelCap
                                 app.CurrentBattle = Stage
                                 app.CurrentFight = Stage.ListOfFights[int(Icon.Text.value) - 1]
                                 
@@ -2756,6 +2757,7 @@ def CreateCard(color,cost,name,dice,AddToList,OnUseEffect):
     NameText = Label(name,NameBox.centerX,NameBox.centerY, size = FullCard.fontsize)
     #NameText.rotateAngle = -10
     FullCard.name = name
+    FullCard.Used = False
     FullCard.add(Image,CostCircle,CostNumber,NameBox,NameText)
     
     FullCard.OnUseEffect = OnUseEffect
@@ -2843,6 +2845,7 @@ def CopyCard(Card,NewList):
     FullCard.CardBox = NameBox
     NameText = Label(Card.name,NameBox.centerX,NameBox.centerY, size = Card.fontsize)
     FullCard.name = Card.name
+    FullCard.Used = False
     FullCard.add(Image,CostCircle,CostNumber,NameBox,NameText)
     
     FullCard.OnUseEffect = Card.OnUseEffect
@@ -3555,7 +3558,12 @@ def TargetWithPage(SpeedDie, Card, Character, TargetDie):
         
 def UntargetSpeedDie(SpeedDie):
     if SpeedDie.HeldPage != None:
-        RestorePage(SpeedDie.HeldPage)
+        if SpeedDie.HeldPage.Used == True: #the page has started to be used so no refund
+            RestorePage(SpeedDie.HeldPage)
+        else:
+            SpeedDie.ConnectedCharacter.Light += SpeedDie.HeldPage.cost
+            FixLightSpritePositions(SpeedDie.ConnectedCharacter)
+
         #print("Untarget")
         if SpeedDie.TargetDie != None:
             EnemyDie = SpeedDie.TargetDie
@@ -3568,8 +3576,6 @@ def UntargetSpeedDie(SpeedDie):
                     SwitchClashColors(EnemyDie, "Red")
                     pass
         #EnemyDie.TargettedBy.remove(SpeedDie)
-        SpeedDie.ConnectedCharacter.Light += SpeedDie.HeldPage.cost
-        FixLightSpritePositions(SpeedDie.ConnectedCharacter)
         SpeedDie.TargetDie = None
         SpeedDie.ConnectedCharacter.Hand.append(SpeedDie.HeldPage)
         SpeedDie.HeldPage = None
@@ -3777,8 +3783,10 @@ def MoveATowardB(Character,SecondSprite):
         
 def ClashBetweenSpeedDice(FirstDie,SecondDie):
     if FirstDie.HeldPage != None and len(FirstDie.HeldPage.DiceList) > 0:
+        FirstDie.HeldPage.Used = True
         if SecondDie.HeldPage != None and len(SecondDie.HeldPage.DiceList) > 0 and SecondDie.TargetDie == FirstDie:
             print("Clash with page")
+            SecondDie.HeldPage.Used = True
             ContestOfTwoDice(FirstDie,SecondDie)
             pass
         elif len(SecondDie.ConnectedCharacter.UnusedDice) > 0:
@@ -3790,9 +3798,10 @@ def ClashBetweenSpeedDice(FirstDie,SecondDie):
             OneSidedRolling(FirstDie,SecondDie)
     elif SecondDie.HeldPage != None and len(SecondDie.HeldPage.DiceList) > 0:
         print("one sided attack from second, miracle?")
+        SecondDie.HeldPage.Used = True
         OneSidedRolling(SecondDie,FirstDie)
     else:
-        print("This may be the cause of standstill? something broke in clash")
+        print("This may be the cause of standstill? something broke in clash, trying to escape")
         if FirstDie.HeldPage != None:
             print("Trying to fix by untargetting and reconstructing bc found held pages")
             UntargetSpeedDie(FirstDie)
@@ -4147,6 +4156,7 @@ def ResolveAndRemoveExtraDie(ExtraDieList):
     ExtraDieList.remove(ExtraDieList[0])
     
 def RestorePage(Page):
+    Page.Used = False
     if len(Page.DiceList) == 0:
         Page.DiceList = list(Page.UsedDiceList)
     else:
@@ -5435,37 +5445,39 @@ def LevelUpTeamEmotionLevel(TotalPositive,TotalNegative):
     elif app.CurrentTeamEmotionLevel == 5:
         EmotionOptions = app.CurrentFloor.EmotionPayoffs[2]
     
-    Chance = random.randint(0,TotalPositive + TotalNegative)
+    if TotalPositive + TotalNegative > 0:
 
-    if len(EmotionOptions) > 0:
-        DisplayedOptions = []
-        PositiveList = []
-        NegativeList = []
-        for Option in EmotionOptions:
-            if not Contains(app.ChosenAbnoPages,Option):
-                if Option.Positive:
-                    PositiveList.append(Option)
-                else:
-                    NegativeList.append(Option)
+        Chance = random.randint(0,TotalPositive + TotalNegative)
+
+        if len(EmotionOptions) > 0:
+            DisplayedOptions = []
+            PositiveList = []
+            NegativeList = []
+            for Option in EmotionOptions:
+                if not Contains(app.ChosenAbnoPages,Option):
+                    if Option.Positive:
+                        PositiveList.append(Option)
+                    else:
+                        NegativeList.append(Option)
+                        
+
+            for RunItThrice in range(3):
+                if len(PositiveList) <= 0 and len(NegativeList) <= 0:
+                    print("failed to find abno")
+                elif (Chance <= TotalPositive and len(PositiveList) >= 0) or len(NegativeList) <= 0: #checks if positive or a list is running out
+                    print("positive abno")
+                    Chance2 = random.randint(0,len(PositiveList) - 1)
+                    DisplayedOptions.append(PositiveList[Chance2])
+                    PositiveList.remove(PositiveList[Chance2])
                     
-
-        for RunItThrice in range(3):
-            if len(PositiveList) <= 0 and len(NegativeList) <= 0:
-                print("failed to find abno")
-            elif (Chance <= TotalPositive and len(PositiveList) <= 0) or len(NegativeList) <= 0: #checks if positive or a list is running out
-                print("positive abno")
-                Chance2 = random.randint(0,len(PositiveList) - 1)
-                DisplayedOptions.append(PositiveList[Chance2])
-                PositiveList.remove(PositiveList[Chance2])
-                
-            else:
-                print("negative abno")
-                Chance2 = random.randint(0,len(NegativeList) - 1)
-                DisplayedOptions.append(NegativeList[Chance2])
-                NegativeList.remove(NegativeList[Chance2])
-        
-        DisplayAbnoOptions(DisplayedOptions)
-        
+                else:
+                    print("negative abno")
+                    Chance2 = random.randint(0,len(NegativeList) - 1)
+                    DisplayedOptions.append(NegativeList[Chance2])
+                    NegativeList.remove(NegativeList[Chance2])
+            
+            DisplayAbnoOptions(DisplayedOptions)
+            
     app.CurrentTeamEmotionLevel += 1
 
 def DisplayAbnoOptions(ListedOptions):
@@ -5601,7 +5613,9 @@ def UpdateResolution():
 #also need to remove the light as soon as starts to use the page not just refund when staggered
 
 #bug if fight end and no more and emotion level up happen at the same time, it shows abno as background and when clicked breaks dissapears everything 
-#this is bec reset all pos is at the start of fight end 
+#this is bec reset all pos is at the start of fight end
+# also fix position of weakness board
+# also fix random target to be smarter and starting hook officers to have their actual decks
 
 #far off
 #have character's page be clickable to go into attribution

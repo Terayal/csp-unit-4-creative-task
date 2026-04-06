@@ -3484,7 +3484,7 @@ def CharacterRandomTarget(Character):
                         TargetWithPage(SpeedDie, Card, Character, None)
                         pass
                     else:
-                        chance = random.randint(1,len(Character.Hand) - 1)
+                        chance = random.randint(1,len(Character.Hand))
                         if chance == 1:
                             UntargetSpeedDie(SpeedDie)
                             TargetWithPage(SpeedDie, Card, Character, None)
@@ -5621,7 +5621,6 @@ def UpdateResolution():
 
 #right now things;
 #make sprites for brothers, chefs, hooks, matches, scorched girl
-#make scroll in progression tree
 #next stages are chef office, into forsaken murderer and lulu office
 
 # also fix random target to be smarter and Chef officers to have their actual decks

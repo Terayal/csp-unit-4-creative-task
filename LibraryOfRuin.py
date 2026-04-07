@@ -1634,6 +1634,15 @@ def CreateStorySymbols():
     
     Yun = AssignSymbol("Yun")
     app.StageSymbols.append(Yun)
+
+    BrotherHood = AssignSymbol("Brotherhood")
+    app.StageSymbols.append(BrotherHood)
+
+    Hook = AssignSymbol("Hook")
+    app.StageSymbols.append(Hook)
+
+    Chef = AssignSymbol("Chef")
+    app.StageSymbols.append(Chef)
     
     BloodBath = AssignSymbol("BloodBath")
     app.Floors[0].EnlightenmentStageSymbols.append(BloodBath)
@@ -1661,25 +1670,53 @@ def AssignSymbol(SpriteName):
         FullYun = Group(Yun1,Yun2,Yun3,Yun4,Yun5,Yun6)
         FullYun.visible = False
         return FullYun
-        
-    elif SpriteName == "BloodBath":
-        Chalice = Polygon(169,199,175,238,190,253,190,270,169,284,231,284,210,270,210,253,225,238,231,199,fill = "grey")
-        Blood = Oval(200,200,62,30,fill = "red")
-        FullBloodBath = Group(Chalice,Blood)
-        FullBloodBath.visible = False
-        return FullBloodBath
-    elif == "Chef":
+    elif SpriteName == "Brotherhood":
+        Skull = Polygon(155,320,186,333,215,333,245,323,250,282,262,240,282,219,298,203,304,168,276,142,273,118,259,115,242,109,233,89,213,87,208
+        ,59,176,61,150,69,134,79,121,94,109,108,101,127,97,149,95,177,103,207,118,213,136,228,147,261,148,296,155,320,fill = "grey",border = "yellow")
+        EyeR = Circle(230,170,30,fill = "lightGrey", border = "orange",borderWidth = 6)
+        EyeL1 = Circle(140,140,15,fill = "lightGrey", border = "orange",borderWidth = 4)
+        EyeL2 = Circle(150,170,15,fill = "lightGrey", border = "orange",borderWidth = 4)
+        EyeL3 = Circle(160,200,15,fill = "lightGrey", border = "orange",borderWidth = 4)
+
+        FullHead = Group(Skull,EyeR,EyeL1,EyeL2,EyeL3)
+        FullHead.visible = False
+        return FullHead
+
+    elif SpriteName == "Hook":
+        Hook1 = Polygon(276,125,295,80,284,52,266,43,235,39,217,49,205,76,175,127,150,172,129,207,112,221,103,216,96,195,104
+        ,170,79,165,71,189,74,214,86,234,106,244,130,239,147,223,181,170,224,82,245,65,260,65,269,83,269,101,275,127,fill = "grey",border = "yellow")
+        Hookend1 = Polygon(269,101,275,127,295,80,fill = "red")
+        Hook2 = Polygon(124,125,105,80,116,52,134,43,165,39,183,49,195,76,225,127,250,172,271,207,288,221,297,216,304,195,296
+        ,170,321,165,329,189,326,214,314,234,294,244,270,239,253,223,229,170,176,82,155,65,140,65,131,83,131,101,125,127,fill = "grey",border = "yellow")
+        Hookend2 = Polygon(131,101,125,127,105,80,fill = "red")
+        FullHook = Group(Hook1,Hookend1,Hook2,Hookend2)
+        FullHook.visible = False
+        return FullHook
+
+    elif SpriteName == "Chef":
         Pie = Circle(200,200,100,fill = "black",border = "yellow",borderWidth = 8)
         InnerPie1 = Oval(200,155,10,40,fill="orange")
         InnerPie2 = Oval(240,175,10,40,fill="orange",rotateAngle = 180/4)
         InnerPie3 = Oval(240,225,10,40,fill="orange",rotateAngle = 180/4 * 3)
-
         InnerPie4 = Oval(200,245,10,40,fill="orange")
         InnerPie5 = Oval(160,225,10,40,fill="orange",rotateAngle = 180/4)
         InnerPie6 = Oval(160,175,10,40,fill="orange",rotateAngle = 180/4 * 3)
 
         Bite = Polygon(90,231,200,200,155,295,fill = "red")
 
+        FullPie = Group(Pie,InnerPie1,InnerPie2,InnerPie3,InnerPie4,InnerPie5,InnerPie6,Bite)
+        FullPie.visible = False
+        return FullPie
+
+    elif SpriteName == "BloodBath":
+        Chalice = Polygon(169,199,175,238,190,253,190,270,169,284,231,284,210,270,210,253,225,238,231,199,fill = "grey")
+        Blood = Oval(200,200,62,30,fill = "red")
+        FullBloodBath = Group(Chalice,Blood)
+        FullBloodBath.visible = False
+        return FullBloodBath
+    elif "Match":
+        Polygon(156,310,177,331,281,238,257,217)
+        Head = Polygon(281,237,291,235,310,225,327,206,325,185,307,171,279,176,263,192,258,205,257,216,fill = "red")
     else:
         DefaultSprite = Oval(200,200,30,45)
         DefaultSprite.visible = False

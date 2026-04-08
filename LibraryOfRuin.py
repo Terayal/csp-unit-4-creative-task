@@ -1653,12 +1653,10 @@ def AssignSymbol(SpriteName):
         RatEye = Circle(137,140,10,fill = "red")
         RatNose = Polygon(77,154,84,141,105,170,fill="pink")
         RatTail = Group(Line(245,199,288,163),Line(295,92,288,163),Line(295,92,271,72),Line(247,82,271,72),Line(247,82,247,102),Line(271,106,247,102),Line(271,106,272,89),Line(259,86,272,89))
-        FullRat = Group(Rat,RatTail)
-        FullRat.fill = "grey"
-        FullRat.add(RatEye)
-        FullRat.add(RatNose)
-        FullRat.visible = False
-        return FullRat
+        FullSymbol = Group(Rat,RatTail)
+        FullSymbol.fill = "grey"
+        FullSymbol.add(RatEye)
+        FullSymbol.add(RatNose)
         
     elif SpriteName == "Yun":
         Yun1 = Circle(200,100,50,fill = "grey",border = "yellow",borderWidth = 5)
@@ -1667,9 +1665,8 @@ def AssignSymbol(SpriteName):
         Yun4 = Rect(150,205,25,60,fill = "grey",border = "yellow",borderWidth = 5)
         Yun5 = Rect(225,205,25,60,fill = "grey",border = "yellow",borderWidth = 5)
         Yun6 = Polygon(75,275,200,355,325,275,335,290,200,380,65,290,fill = "grey",border = "yellow",borderWidth = 4)
-        FullYun = Group(Yun1,Yun2,Yun3,Yun4,Yun5,Yun6)
-        FullYun.visible = False
-        return FullYun
+        FullSymbol = Group(Yun1,Yun2,Yun3,Yun4,Yun5,Yun6)
+
     elif SpriteName == "Brotherhood":
         Skull = Polygon(155,320,186,333,215,333,245,323,250,282,262,240,282,219,298,203,304,168,276,142,273,118,259,115,242,109,233,89,213,87,208
         ,59,176,61,150,69,134,79,121,94,109,108,101,127,97,149,95,177,103,207,118,213,136,228,147,261,148,296,155,320,fill = "grey",border = "yellow")
@@ -1677,10 +1674,7 @@ def AssignSymbol(SpriteName):
         EyeL1 = Circle(140,140,15,fill = "lightGrey", border = "orange",borderWidth = 4)
         EyeL2 = Circle(150,170,15,fill = "lightGrey", border = "orange",borderWidth = 4)
         EyeL3 = Circle(160,200,15,fill = "lightGrey", border = "orange",borderWidth = 4)
-
-        FullHead = Group(Skull,EyeR,EyeL1,EyeL2,EyeL3)
-        FullHead.visible = False
-        return FullHead
+        FullSymbol = Group(Skull,EyeR,EyeL1,EyeL2,EyeL3)
 
     elif SpriteName == "Hook":
         Hook1 = Polygon(276,125,295,80,284,52,266,43,235,39,217,49,205,76,175,127,150,172,129,207,112,221,103,216,96,195,104
@@ -1689,9 +1683,7 @@ def AssignSymbol(SpriteName):
         Hook2 = Polygon(124,125,105,80,116,52,134,43,165,39,183,49,195,76,225,127,250,172,271,207,288,221,297,216,304,195,296
         ,170,321,165,329,189,326,214,314,234,294,244,270,239,253,223,229,170,176,82,155,65,140,65,131,83,131,101,125,127,fill = "grey",border = "yellow")
         Hookend2 = Polygon(131,101,125,127,105,80,fill = "red")
-        FullHook = Group(Hook1,Hookend1,Hook2,Hookend2)
-        FullHook.visible = False
-        return FullHook
+        FullSymbol = Group(Hook1,Hookend1,Hook2,Hookend2)
 
     elif SpriteName == "Chef":
         Pie = Circle(200,200,100,fill = "black",border = "yellow",borderWidth = 8)
@@ -1701,26 +1693,24 @@ def AssignSymbol(SpriteName):
         InnerPie4 = Oval(200,245,10,40,fill="orange")
         InnerPie5 = Oval(160,225,10,40,fill="orange",rotateAngle = 180/4)
         InnerPie6 = Oval(160,175,10,40,fill="orange",rotateAngle = 180/4 * 3)
-
         Bite = Polygon(90,231,200,200,155,295,fill = "red")
-
-        FullPie = Group(Pie,InnerPie1,InnerPie2,InnerPie3,InnerPie4,InnerPie5,InnerPie6,Bite)
-        FullPie.visible = False
-        return FullPie
+        FullSymbol = Group(Pie,InnerPie1,InnerPie2,InnerPie3,InnerPie4,InnerPie5,InnerPie6,Bite)
 
     elif SpriteName == "BloodBath":
         Chalice = Polygon(169,199,175,238,190,253,190,270,169,284,231,284,210,270,210,253,225,238,231,199,fill = "grey")
         Blood = Oval(200,200,62,30,fill = "red")
-        FullBloodBath = Group(Chalice,Blood)
-        FullBloodBath.visible = False
-        return FullBloodBath
-    elif "Match":
-        Polygon(156,310,177,331,281,238,257,217)
+        FullSymbol = Group(Chalice,Blood)
+
+    elif SpriteName == "Match":
+        Stick = Polygon(156,310,177,331,281,238,257,217)
         Head = Polygon(281,237,291,235,310,225,327,206,325,185,307,171,279,176,263,192,258,205,257,216,fill = "red")
+        FullSymbol = Group(Stick,Head)
+
     else:
-        DefaultSprite = Oval(200,200,30,45)
-        DefaultSprite.visible = False
-        return DefaultSprite
+        FullSymbol = Oval(200,200,30,45)
+
+    FullSymbol.visible = False
+    return FullSymbol
         
 def CreateChefStage():
     

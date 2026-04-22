@@ -7,7 +7,7 @@ app.setMaxShapeCount(40000)
 import random
 import math
 app.Startup = True
-app.Debug = False
+app.Debug = True
 app.PlayerConfirm = False
 app.PlayerConfirmStage = 0
 app.CardWidth = 110
@@ -1186,7 +1186,7 @@ def StartBattle(Fight):
         Character.Stagger = Character.MaxStagger
         UpdateBars(Character)
         AllFightingCharacters.append(Character)
-        Character.AdditionalInfoBoard.right = 400 * XScreenDialation
+        Character.AdditionalInfoBoard.right = 400 * app.XScreenDialation
         Character.AdditionalInfoBoard.top = 0
         for Die in Character.SpeedDice:
             PlayerSpeedDice.append(Die)
@@ -1646,6 +1646,9 @@ def CreateStorySymbols():
     
     BloodBath = AssignSymbol("BloodBath")
     app.Floors[0].EnlightenmentStageSymbols.append(BloodBath)
+
+    ScorchedGirl = AssignSymbol("ScorchedGirl")
+    app.Floors[1].EnlightenmentStageSymbols.append(ScorchedGirl)
     
 def AssignSymbol(SpriteName):
     if SpriteName == "Rat":
@@ -1702,60 +1705,24 @@ def AssignSymbol(SpriteName):
         FullSymbol = Group(Chalice,Blood)
 
     elif SpriteName == "Match":
-        Stick = Polygon(156,310,177,331,281,238,257,217)
+        Stick = Polygon(156,310,177,331,281,238,257,217,fill = "brown")
         Head = Polygon(281,237,291,235,310,225,327,206,325,185,307,171,279,176,263,192,258,205,257,216,fill = "red")
         FullSymbol = Group(Stick,Head)
 
-    elif == "ScorchedGirl":
-        Stick = Polygon(156,310,177,331,281,238,257,217)
+    elif SpriteName == "ScorchedGirl":
+        Stick = Polygon(156,310,177,331,281,238,257,217,fill = "brown")
+        FrontStick = Polygon(136,310,157,331,151,238,127,217,fill = "brown")
         Head = Polygon(281,237,291,235,310,225,327,206,325,185,307,171,279,176,263,192,258,205,257,216,fill = "red")
         Match = Group(Stick,Head)
         Match.rotateAngle = 15
-        Flame = Polygon(276,239,264,220,265,193,273,196,273,156,280,180,292,140,298,174,306,104,315,165,328,177,328,142,333,118,339,210,337,227,fill = gradient("orange","yellow"),border = "yellow",borderWidth = 5)
-
-        Girl = Polygon(217,109
-186,95
-155,90
-134,94
-106,110
-100,135
-107,178
-119,195
-95,213
-87,238
-126,239
-138,207
-150,207
-149,235
-141,263
-138,304
-133,345
-156,349
-155,383
-135,388
-135,392
-152,390
-163,388
-164,349
-194,349
-197,382
-184,384
-184,389
-206,387
-202,349
-229,347
-222,298
-216,246
-213,204
-225,203
-236,228
-261,221
-253,202
-238,188
-242,166
-232,135
-248,112
-218,109)
+        FrontStick.rotateAngle = 65
+        FrontStick.centerY += 15
+        Flame = Polygon(276,239,264,220,265,193,273,196,273,156,280,180,292,140,298,174,306,104,315,165,328,177,328,142,333,118,339,210,337,227,fill = gradient("orange","yellow"),border = "yellow",borderWidth = 1)
+        Girl = Polygon(217,109,186,95,155,90,134,94,106,110,100,135,107,178,119,195,95,213,87,238,126,239,138,207,150,207,149,235,141,263,138,304,133,345,156,349,155,383,135,388,135,392,152,390,163,388,164,349,194,349,197
+        ,382,184,384,184,389,206,387,202,349,229,347,222,298,216,246,213,204,225,203,236,228,261,221,253,202,238,188,242,166,232,135,248,112,218,109,fill = "grey")
+        Eye1 = Oval(200,150,15,40,fill = "white")
+        Eye2 = Oval(150,150,15,40,fill = "white")
+        FullSymbol = Group(Match,Flame,Girl,FrontStick,Eye1,Eye2)
     else:
         FullSymbol = Oval(200,200,30,45)
 
@@ -2627,7 +2594,7 @@ def CreateScorchedGirlStage():
     DeckList = CreateDeckList(["Fourth Match Flame"])
     ResistanceList = [-2,-2,-2,2,2,2]
     AttributedPassives = ["Scorched Girl Mourn","Scorched Girl Clumsy"] #lose 50% max hp on match death and get staggered, on stagger lose all light
-    ScorchedGirl = CreateCharacter(170,200,2,False,SpeedDiceList,DeckList,4,500,5,ResistanceList,"Scorched Girl",Part.ListOfFighters,"Scorched Girl",AttributedPassives,0)
+    ScorchedGirl = CreateCharacter(170,200,2,False,SpeedDiceList,DeckList,4,500,5,ResistanceList,"Scorched Girl",Part.ListOfFighters,"ScorchedGirl",AttributedPassives,0)
     print("Scorched girl done")
 
     SpeedDiceList = []

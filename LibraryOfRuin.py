@@ -343,65 +343,7 @@ def onMousePress(x,y):
             
                             
             if XButton.hits(x,y):
-                if app.Menu == "EditDeck":
-                    app.Menu = "CharacterSelect"
-                    HideEditDeck()
-                    app.DeckBuilderYDisp = 0
-                    print("Xed out of deck edit")
-                    DisplayCharacterSelect()
-                elif app.Menu == "EditCharacter":
-                    app.Menu = "CharacterSelect"
-                    for Card in app.UnusedCharacterCards:
-                        Card.visible = False
-                    app.DeckBuilderYDisp = 0
-                    DeleteTempButtons()
-                    app.ChosenCharacter.OverrideCard.visible = False
-                    print("Xed out of character edit")
-                    DisplayCharacterSelect()
-                elif app.Menu == "CharacterSelect":
-                    app.Menu = "MainMenu"
-                    HideCharacterSelect()
-                    DeleteTempButtons()
-                    DisplayMainMenu()
-                elif app.Menu == "ProgressionTree":
-                    app.Menu = "MainMenu"
-                    app.DeckBuilderYDisp = 0
-                    for Stage in app.StoryStages:
-                        Stage.visible = False
-                    for Symbol in app.StageSymbols:
-                        Symbol.visible = False
-                    DeleteTempButtons()
-                    DisplayMainMenu()
-                    
-                elif app.Menu == "FloorSelect":
-                    app.Menu = "MainMenu"
-                    DeleteTempButtons()
-                    DisplayMainMenu()
-                
-                elif app.Menu == "Instructions":
-                    app.Menu = "MainMenu"
-                    DeleteTempButtons()
-                    DisplayMainMenu()
-                    
-                elif app.Menu == "EnlightenmentBattles":
-                    app.Menu = "FloorSelect"
-                    DeleteTempButtons()
-                    for Floor in app.Floors:
-                        for Symbol in Floor.EnlightenmentStageSymbols:
-                            Symbol.visible = False
-                        for Stage in Floor.EnlightenmentStages:
-                            Stage.visible = False
-                    DisplayFloorSelect()
-                    
-                elif app.Menu == "Abnormalities":
-                    app.Menu = "FloorSelect"
-                    DeleteTempButtons()
-                    DisplayFloorSelect()
-                    
-                elif app.Menu == "FloorSelect":
-                    app.Menu = "MainMenu"
-                    DeleteTempButtons()
-                    DisplayMainMenu()
+                ExitPage()
 
             print("Clicked while in menu")
         
@@ -503,6 +445,8 @@ def onKeyPress(key):
                     CharacterRandomTarget(Character)
         
     elif app.InMainMenu:
+        if key == "escape":
+            ExitPage()
         if app.Menu == "CharacterSelect" or app.Menu == "EditCharacter":
             if app.ActiveTextInput != None:
                 if key == "backspace":
@@ -5657,6 +5601,67 @@ def AttackAnimation(Action, Character):
         Particle.Rotation = 0
         Particle.fill = "white"
         app.FadingParticles.append(Particle)
+
+def ExitPage():
+    if app.Menu == "EditDeck":
+        app.Menu = "CharacterSelect"
+        HideEditDeck()
+        app.DeckBuilderYDisp = 0
+        print("Xed out of deck edit")
+        DisplayCharacterSelect()
+    elif app.Menu == "EditCharacter":
+        app.Menu = "CharacterSelect"
+        for Card in app.UnusedCharacterCards:
+            Card.visible = False
+        app.DeckBuilderYDisp = 0
+        DeleteTempButtons()
+        app.ChosenCharacter.OverrideCard.visible = False
+        print("Xed out of character edit")
+        DisplayCharacterSelect()
+    elif app.Menu == "CharacterSelect":
+        app.Menu = "MainMenu"
+        HideCharacterSelect()
+        DeleteTempButtons()
+        DisplayMainMenu()
+    elif app.Menu == "ProgressionTree":
+        app.Menu = "MainMenu"
+        app.DeckBuilderYDisp = 0
+        for Stage in app.StoryStages:
+            Stage.visible = False
+        for Symbol in app.StageSymbols:
+            Symbol.visible = False
+        DeleteTempButtons()
+        DisplayMainMenu()
+        
+    elif app.Menu == "FloorSelect":
+        app.Menu = "MainMenu"
+        DeleteTempButtons()
+        DisplayMainMenu()
+    
+    elif app.Menu == "Instructions":
+        app.Menu = "MainMenu"
+        DeleteTempButtons()
+        DisplayMainMenu()
+        
+    elif app.Menu == "EnlightenmentBattles":
+        app.Menu = "FloorSelect"
+        DeleteTempButtons()
+        for Floor in app.Floors:
+            for Symbol in Floor.EnlightenmentStageSymbols:
+                Symbol.visible = False
+            for Stage in Floor.EnlightenmentStages:
+                Stage.visible = False
+        DisplayFloorSelect()
+        
+    elif app.Menu == "Abnormalities":
+        app.Menu = "FloorSelect"
+        DeleteTempButtons()
+        DisplayFloorSelect()
+        
+    elif app.Menu == "FloorSelect":
+        app.Menu = "MainMenu"
+        DeleteTempButtons()
+        DisplayMainMenu()
     
 def CreateParticle(x,y,size,color):
     Particle = Rect(0,0,size,size,fill = color)

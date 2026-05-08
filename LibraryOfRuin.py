@@ -672,8 +672,10 @@ def onStep():
                 ContinueAfterFight()
                 app.InAFight = False
                 app.InMainMenu = True
-                app.Menu = "MainMenu"
-                DisplayMainMenu()
+                #app.Menu = "MainMenu"
+                #DisplayMainMenu()
+                app.Menu = "ProgressionTree"
+                DisplayProgressionTree()
                 for Character in AllCharacters:
                     ResetCharacterLibrary(Character)
     elif app.InMainMenu:
@@ -5676,18 +5678,20 @@ def UpdateResolution():
     app.ContinueText = Label("Press Space To Continue",app.width/2,app.height/2 + 50 * app.YScreenDialation, fill = "white",visible = False)
 
 #right now things;
-#next finish chef office card assignment, add forsaken murderer and lulu office
-
-# also fix random target to be smarter and Chef officers to have their actual decks
+#Chef officers to have their actual decks
+#add instructions and popups for players (very important) also add effect descriptions
+#add forsaken murderer and lulu office
 
 #far off
 #have character's page be clickable to go into attribution
+#fix random target to be smarter 
+
 
 #polish
 #also maybe new card / new fight reminder icons for main menu
-#add instructions, make set positions template
+#make set positions template
 #fix fixupcharacter is an acceptable bug for now
-#also add a rules page, and maybe eventually a save code system
+#eventually a save code system
 #wording for regain health die effects is kinda wacky so fix later?
 
 #also cards can be found easily on https://projectmoon.miraheze.org/wiki/Cards_(Library_of_Ruina)

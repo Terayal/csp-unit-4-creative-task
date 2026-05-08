@@ -7,7 +7,7 @@ app.setMaxShapeCount(40000)
 import random
 import math
 app.Startup = True
-app.Debug = True
+app.Debug = False
 app.PlayerConfirm = False
 app.PlayerConfirmStage = 0
 app.CardWidth = 110
@@ -5513,8 +5513,6 @@ def LevelUpTeamEmotionLevel(TotalPositive,TotalNegative):
     
     if TotalPositive + TotalNegative > 0:
 
-        Chance = random.randint(0,TotalPositive + TotalNegative)
-
         if len(EmotionOptions) > 0:
             DisplayedOptions = []
             PositiveList = []
@@ -5528,19 +5526,22 @@ def LevelUpTeamEmotionLevel(TotalPositive,TotalNegative):
                         
 
             for RunItThrice in range(3):
-                if len(PositiveList) <= 0 and len(NegativeList) <= 0:
-                    print("failed to find abno")
-                elif (Chance <= TotalPositive and len(PositiveList) >= 0) or len(NegativeList) <= 0: #checks if positive or a list is running out
-                    print("positive abno")
-                    Chance2 = random.randint(0,len(PositiveList) - 1)
-                    DisplayedOptions.append(PositiveList[Chance2])
-                    PositiveList.remove(PositiveList[Chance2])
-                    
+                if len(PositiveList) + len(NegativeList) > 0:
+                    Chance = random.randint(0,len(PositiveList) + len(NegativeList))
+
+                    if len(PositiveList) > 0 and (Chance <= TotalPositive or len(NegativeList) <= 0): #checks if positive or a list is running out
+                        print("positive abno")
+                        Chance2 = random.randint(0,len(PositiveList) - 1)
+                        DisplayedOptions.append(PositiveList[Chance2])
+                        PositiveList.remove(PositiveList[Chance2])
+                        
+                    else:
+                        print("negative abno")
+                        Chance2 = random.randint(0,len(NegativeList) - 1)
+                        DisplayedOptions.append(NegativeList[Chance2])
+                        NegativeList.remove(NegativeList[Chance2])
                 else:
-                    print("negative abno")
-                    Chance2 = random.randint(0,len(NegativeList) - 1)
-                    DisplayedOptions.append(NegativeList[Chance2])
-                    NegativeList.remove(NegativeList[Chance2])
+                    print("failed to find abno")
             
             DisplayAbnoOptions(DisplayedOptions)
             
@@ -5675,8 +5676,7 @@ def UpdateResolution():
     app.ContinueText = Label("Press Space To Continue",app.width/2,app.height/2 + 50 * app.YScreenDialation, fill = "white",visible = False)
 
 #right now things;
-#make sprites for brothers, chefs, hooks, matches, scorched girl
-#next stages are chef office, into forsaken murderer and lulu office
+#next finish chef office card assignment, add forsaken murderer and lulu office
 
 # also fix random target to be smarter and Chef officers to have their actual decks
 

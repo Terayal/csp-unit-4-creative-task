@@ -81,6 +81,8 @@ DeckbuildingBack = Rect(200,0,200,400,visible = False)
 
 app.FadingParticles = []
 
+app.AllInstructions = []
+
 #----------------------------------------------------------------------------------------------
 #Inputs
 def onMousePress(x,y):
@@ -251,6 +253,7 @@ def onMousePress(x,y):
                             DisplayFloorSelect()
                         elif Button.Type == "Instructions":
                             app.Menu = "Instructions"
+                            DisplayInstructions(1)
                             print("WIP LOL")
                             
             elif app.Menu == "ProgressionTree":
@@ -913,7 +916,8 @@ def DisplayFloorSelect():
             LockBox.Type = "locked"
             app.TemporaryButtons.append(LockBox)
         
-
+def DisplayInstructions(Page):
+    CurrentInstructions = app.AllInstructions[Page]
         
 def DisplayCharacterEdit(Character):
     StartX = 240
@@ -3284,7 +3288,21 @@ def Startup():
     
     #------------------------------------------------------------------------------
     #Hide cards
-    
+
+    #Setup the instructions
+    app.AllInstructions.append("In this game you have characters, each of these characters have SPEED DICE (the red blue box)")
+    app.AllInstructions.append("By holding your mouse over the SPEED DIE you can see all of the cards available to the character")
+    app.AllInstructions.append("If you click on the SPEED DIE it will cause the cards to continue to be displayed allowing you to select a card")
+    app.AllInstructions.append("Above each character's SPEED DICE their current and maximum light is displayed by the yellow circles, each displayed card has a Light cost in the top left")
+    app.AllInstructions.append("If you click on a card, a blue targetting line will appear allowing you to select opposing characters SPEED DICE")
+    app.AllInstructions.append("As long as the character has enough Light, by clicking on a SPEED DIE on top of an opposing character, the page will be selected and targetted")
+    app.AllInstructions.append("This can be seen by hovering the mouse over that speed die showing the selected card")
+    app.AllInstructions.append("At the start of each turn, each character will draw 1 card from their deck and recover 1 light up to their max")
+    app.AllInstructions.append("The lines coming out of each SPEED DIE display what type of interaction the card will have")
+    app.AllInstructions.append("Red and Blue lines mean that the selected card is uncontested, Yellow lines mean the page is Clashing with the page on the opposing SPEED DIE")
+    app.AllInstructions.append("When pages Clash the first die on both pages will be rolled and then compared based on their type")
+    app.AllInstructions.append("If two red combat dice are rolled against each other, the higher number wins dealing damage equal to the result and modifiers")
+    app.AllInstructions.append("If a red combat die is rolled against a blue defensive die and that blue defensive die has the evade squiggly line")
     app.Startup = False
     
 def HideAllSetupCards():

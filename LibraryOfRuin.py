@@ -3302,7 +3302,15 @@ def Startup():
     app.AllInstructions.append("Red and Blue lines mean that the selected card is uncontested, Yellow lines mean the page is Clashing with the page on the opposing SPEED DIE")
     app.AllInstructions.append("When pages Clash the first die on both pages will be rolled and then compared based on their type")
     app.AllInstructions.append("If two red combat dice are rolled against each other, the higher number wins dealing damage equal to the result and modifiers")
-    app.AllInstructions.append("If a red combat die is rolled against a blue defensive die and that blue defensive die has the evade squiggly line")
+    app.AllInstructions.append("If a red combat die is rolled against a blue defensive die and that blue defensive die has the Evade symbol, if the Evade die wins the character regains stagger and the Evade die will be reused")
+    app.AllInstructions.append("If the Evade die loses the character will take full damage")
+    app.AllInstructions.append("Alternatively if a red combat die is rolled against a blue defensive die and that blue defensive die has the Block symbol, damage will be reduced by the Block roll")
+    app.AllInstructions.append("If the Block die is greater, the attacker will take stagger damage equal to the difference in die values")
+    app.AllInstructions.append("If a character takes damage, they lose red health and yellow stagger influenced by the resistence table")
+    app.AllInstructions.append("Fatal means they will take 2x damage, Weak means they will take 1.5x damage, normal means they will take 1x damage")
+    app.AllInstructions.append("Endured means they will take .5x damage, Ineffective means they will take .25x damage, Immune means they will take 0x damage")
+    app.AllInstructions.append("Once a character runs out of their yellow stagger bar they will become staggered, preventing them from acting and set all of their resistences to fatal for a turn")
+    app.AllInstructions.append("Staggering a character will restore 1 light to the attacking character, Once a character runs out of their red health bar, they will die")
     app.Startup = False
     
 def HideAllSetupCards():

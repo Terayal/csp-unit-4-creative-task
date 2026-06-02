@@ -254,6 +254,7 @@ def onMousePress(x,y):
                         elif Button.Type == "Instructions":
                             app.Menu = "Instructions"
                             DisplayInstructions(1)
+                            app.DeckBuilderYDisp = 1
                             print("WIP LOL")
                             
             elif app.Menu == "ProgressionTree":
@@ -467,6 +468,21 @@ def onKeyPress(key):
                 
             elif key == "down":
                 MoveDisplayCards(-10)
+        if app.Menu == "Instructions":
+            if key == "right":
+                app.DeckBuilderYDisp += 1
+                if app.DeckBuilderYDisp >= len(app.AllInstructions) - 1:
+                    app.DeckBuilderYDisp = len(app.AllInstructions) - 1
+                DeleteTempButtons()
+                DisplayInstructions(app.DeckBuilderYDisp)
+
+            if key == "left":
+                app.DeckBuilderYDisp -= 1
+                if app.DeckBuilderYDisp <= 0:
+                    app.DeckBuilderYDisp = 1
+                DeleteTempButtons()
+                DisplayInstructions(app.DeckBuilderYDisp)
+        
         pass
     
 def onKeyHold(keys):
@@ -918,6 +934,19 @@ def DisplayFloorSelect():
         
 def DisplayInstructions(Page):
     CurrentInstructions = app.AllInstructions[Page]
+    Pagenum = Label(str(Page) + "/" + str(len(app.AllInstructions) - 1),20,380)
+    Pagenum.Type = "locked"
+    app.TemporaryButtons.append(Pagenum)
+    StartY = 100
+    length = 40
+    index = 0
+    for line in range(int(len(CurrentInstructions)/length) + 1):
+        LineText = CurrentInstructions[index:index + length]
+        CurrentLine = Label(LineText,200,StartY)
+        CurrentLine.Type = "locked"
+        app.TemporaryButtons.append(CurrentLine)
+        index += length
+        StartY += 20
         
 def DisplayCharacterEdit(Character):
     StartX = 240
@@ -3311,6 +3340,7 @@ def Startup():
     app.AllInstructions.append("Endured means they will take .5x damage, Ineffective means they will take .25x damage, Immune means they will take 0x damage")
     app.AllInstructions.append("Once a character runs out of their yellow stagger bar they will become staggered, preventing them from acting and set all of their resistences to fatal for a turn")
     app.AllInstructions.append("Staggering a character will restore 1 light to the attacking character, Once a character runs out of their red health bar, they will die")
+    app.AllInstructions.append("Above each character there is an emotion bar, This bar fills with positive and negative emotions")
     app.Startup = False
     
 def HideAllSetupCards():

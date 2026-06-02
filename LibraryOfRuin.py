@@ -3341,6 +3341,7 @@ def Startup():
     app.AllInstructions.append("Once a character runs out of their yellow stagger bar they will become staggered, preventing them from acting and set all of their resistences to fatal for a turn")
     app.AllInstructions.append("Staggering a character will restore 1 light to the attacking character, Once a character runs out of their red health bar, they will die")
     app.AllInstructions.append("Above each character there is an emotion bar, This bar fills with positive and negative emotions up to the floor max emotion level starting at 0")
+    app.AllInstructions.append("Whenever a character's emotion levels up they regain all light")
     app.Startup = False
     
 def HideAllSetupCards():

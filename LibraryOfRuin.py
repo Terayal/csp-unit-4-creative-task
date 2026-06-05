@@ -937,16 +937,58 @@ def DisplayInstructions(Page):
     Pagenum = Label(str(Page) + "/" + str(len(app.AllInstructions) - 1),20,380)
     Pagenum.Type = "locked"
     app.TemporaryButtons.append(Pagenum)
-    StartY = 100
-    length = 40
-    index = 0
-    for line in range(int(len(CurrentInstructions)/length) + 1):
-        LineText = CurrentInstructions[index:index + length]
-        CurrentLine = Label(LineText,200,StartY)
-        CurrentLine.Type = "locked"
-        app.TemporaryButtons.append(CurrentLine)
-        index += length
-        StartY += 20
+    #StartY = 100
+    #length = 40
+    #index = 0
+    
+    #EmptyGroup = Group()
+    #EmptyGroup.Type = "locked"
+    #ListOfText = CardPartition(CurrentInstructions)
+    #EmptyGroup.add(ListOfText)
+    
+    #app.TemporaryButtons.append(EmptyGroup)
+
+    #for line in range(int(len(CurrentInstructions)/length) + 1):
+    #    LineText = CurrentInstructions[index:index + length]
+    #    CurrentLine = Label(LineText,200,StartY)
+    #    CurrentLine.Type = "locked"
+    #    app.TemporaryButtons.append(CurrentLine)
+    #    index += length
+    #    StartY += 20
+    String = CurrentInstructions
+    PartitionedDescription = []
+    if len(String) > 14:
+
+        PrevSentence = ""
+        NextWord = ""
+        while len(String) > 0: #this needs to change so we stop losing final word / sentence
+            NextWord = ""
+            while not String.startswith(" ") and len(String) > 0:
+                NextWord = NextWord + String[0:1]
+                String = String[1:]
+            #print(len(PrevSentence))
+            if len(PrevSentence + NextWord) < 14:
+                if len(PrevSentence) > 0:
+                    #print("adding a word to the sentence: ")
+                    PrevSentence = PrevSentence + " " + NextWord
+                else:
+                    PrevSentence = NextWord
+
+                String = String[1:]
+            else:
+                Piece = Label(PrevSentence,0,0,fill = "yellow",size = 8) #sentence is full so finish it and start a new one
+                PartitionedDescription.append(Piece)
+                #print("Overflowing into next sentence with " + NextWord +"fin")
+                PrevSentence = NextWord
+        
+        Piece = Label(PrevSentence,0,0,fill = "yellow",size = 8) #final sentence bc we were losing words
+        PartitionedDescription.append(Piece)
+
+    else:
+        FinalPiece = Label(String,0,0,fill = "yellow",size = 8)
+        PartitionedDescription.append(FinalPiece)
+        
+    return PartitionedDescription
         
 def DisplayCharacterEdit(Character):
     StartX = 240
@@ -3319,16 +3361,16 @@ def Startup():
     #Hide cards
 
     #Setup the instructions
-    app.AllInstructions.append("In this game you have characters, each of these characters have SPEED DICE (the red blue box)")
-    app.AllInstructions.append("By holding your mouse over the SPEED DIE you can see all of the cards available to the character")
-    app.AllInstructions.append("If you click on the SPEED DIE it will cause the cards to continue to be displayed allowing you to select a card")
-    app.AllInstructions.append("Above each character's SPEED DICE their current and maximum light is displayed by the yellow circles, each displayed card has a Light cost in the top left")
-    app.AllInstructions.append("If you click on a card, a blue targetting line will appear allowing you to select opposing characters SPEED DICE")
-    app.AllInstructions.append("As long as the character has enough Light, by clicking on a SPEED DIE on top of an opposing character, the page will be selected and targetted")
-    app.AllInstructions.append("This can be seen by hovering the mouse over that speed die showing the selected card")
+    app.AllInstructions.append("In this game you have characters, each of these characters have CARD SLOTS (the red blue box)")
+    app.AllInstructions.append("By holding your mouse over the CARD SLOT you can see all of the cards available to the character")
+    app.AllInstructions.append("If you click on the CARD SLOT it will cause the cards to continue to be displayed allowing you to select a card")
+    app.AllInstructions.append("Above each character's CARD SLOT their current and maximum light is displayed by the yellow circles, each displayed card has a Light cost in the top left")
+    app.AllInstructions.append("If you click on a card, a blue targetting line will appear allowing you to select opposing characters CARD SLOT")
+    app.AllInstructions.append("As long as the character has enough Light, by clicking on a CARD SLOT on top of an opposing character, the page will be selected and targetted")
+    app.AllInstructions.append("This can be seen by hovering the mouse over that CARD SLOT showing the selected card")
     app.AllInstructions.append("At the start of each turn, each character will draw 1 card from their deck and recover 1 light up to their max")
-    app.AllInstructions.append("The lines coming out of each SPEED DIE display what type of interaction the card will have")
-    app.AllInstructions.append("Red and Blue lines mean that the selected card is uncontested, Yellow lines mean the page is Clashing with the page on the opposing SPEED DIE")
+    app.AllInstructions.append("The lines coming out of each CARD SLOT display what type of interaction the card will have")
+    app.AllInstructions.append("Red and Blue lines mean that the selected card is uncontested, Yellow lines mean the page is Clashing with the page on the opposing CARD SLOT")
     app.AllInstructions.append("When pages Clash the first die on both pages will be rolled and then compared based on their type")
     app.AllInstructions.append("If two red combat dice are rolled against each other, the higher number wins dealing damage equal to the result and modifiers")
     app.AllInstructions.append("If a red combat die is rolled against a blue defensive die and that blue defensive die has the Evade symbol, if the Evade die wins the character regains stagger and the Evade die will be reused")
@@ -3341,7 +3383,7 @@ def Startup():
     app.AllInstructions.append("Once a character runs out of their yellow stagger bar they will become staggered, preventing them from acting and set all of their resistences to fatal for a turn")
     app.AllInstructions.append("Staggering a character will restore 1 light to the attacking character, Once a character runs out of their red health bar, they will die")
     app.AllInstructions.append("Above each character there is an emotion bar, This bar fills with positive and negative emotions up to the floor max emotion level starting at 0")
-    app.AllInstructions.append("Whenever a character's emotion levels up they regain all light")
+    app.AllInstructions.append("Whenever a character's emotion levels up they regain all light, At a high enough emotion level they will unlock extra CARD SLOTS")
     app.Startup = False
     
 def HideAllSetupCards():

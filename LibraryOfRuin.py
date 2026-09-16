@@ -1,5 +1,5 @@
 from cmu_graphics import *
-#Library game???
+#Library game??? cmu graphics has been uploaded to google drive
 #lista becomes list because lista doesnt exista
 #I am switching to VS code fully because of file size problems on CMU
 # am running to shape count problems?
@@ -7,7 +7,7 @@ app.setMaxShapeCount(40000)
 import random
 import math
 app.Startup = True
-app.Debug = False
+app.Debug = True
 app.PlayerConfirm = False
 app.PlayerConfirmStage = 0
 app.CardWidth = 110
@@ -62,6 +62,8 @@ app.CharactersUnlocked = 1
 app.AttributionMax = 6
 app.UnlockedAttribution = False
 app.StagesUnlocked = 1
+if app.Debug:
+    app.StagesUnlocked = 6
 app.FightsUnlocked = 1
 app.CurrentEmotionLevelCap = 1
 app.CurrentTeamEmotionLevel = 0
@@ -662,6 +664,7 @@ def DisplayProgressionTree():
     print("Displaying progression tree")
     StartY = 300 + app.DeckBuilderYDisp
     index = 1
+    XButton.visible = True
     
     for Stage in app.StoryStages:
         if app.StagesUnlocked >= index:
@@ -1642,6 +1645,7 @@ def CreateStoryStages():
     
     #second act stages
     CreateChefStage()
+    CreateTestingStage()
 
     CreateBloodBathStage()
     CreateScorchedGirlStage()
@@ -1664,6 +1668,9 @@ def CreateStorySymbols():
 
     Chef = AssignSymbol("Chef")
     app.StageSymbols.append(Chef)
+
+    Rat2 = AssignSymbol("Rat")
+    app.StageSymbols.append(Rat2)
     
     BloodBath = AssignSymbol("BloodBath")
     app.Floors[0].EnlightenmentStageSymbols.append(BloodBath)
@@ -1750,6 +1757,85 @@ def AssignSymbol(SpriteName):
     FullSymbol.visible = False
     return FullSymbol
         
+def CreateTestingStage():
+    
+    Battle = Group()
+    ListOfFights = []
+    
+    Fight = Group()
+    Fight.FightNumber = 0
+    Fight.RewardCards = []
+    Fight.RewardCharacters = []
+    Fight.ListOfParts = []
+    
+    Part = Group()
+    Part.ListOfFighters = []
+    
+    print("creating testing reward cards")
+    
+    DiceList = []
+    CreateDie(4,6,"slash",DiceList,"NextParalysis","On Hit","Enemy",True) #hit paralysis
+    CreateCard("red",1,"Payback",DiceList,Fight.RewardCards,None)
+    
+    DiceList = []
+    CreateDie(1,4,"pierce",DiceList,"Fragile","On Hit","Enemy",False) #on hit 1 fragile
+    CreateDie(1,4,"pierce",DiceList,"Fragile","On Hit","Enemy",False) #on hit 1 fragile
+    CreateDie(1,4,"pierce",DiceList,"Fragile","On Hit","Enemy",False) #on hit 1 fragile
+    CreateDie(1,4,"pierce",DiceList,"Fragile","On Hit","Enemy",False) #on hit 1 fragile
+    CreateDie(1,4,"pierce",DiceList,"Fragile","On Hit","Enemy",False) #on hit 1 fragile
+    CreateDie(1,4,"pierce",DiceList,"Fragile","On Hit","Enemy",False) #on hit 1 fragile
+    CreateDie(1,4,"pierce",DiceList,"Fragile","On Hit","Enemy",False) #on hit 1 fragile
+    CreateDie(1,4,"pierce",DiceList,"Fragile","On Hit","Enemy",False) #on hit 1 fragile
+    CreateCard("white",1,"Solemn Lament",DiceList,Fight.RewardCards,None)
+    
+    DiceList = []
+    CreateDie(3,4,"pierce",DiceList,None,None,None,False)
+    CreateDie(3,4,"pierce",DiceList,None,None,None,False)
+    CreateDie(3,4,"pierce",DiceList,None,None,None,False)
+    CreateCard("yellow",2,"Make It Rain!",DiceList,Fight.RewardCards,None)
+
+    DiceList = []
+    CreateDie(15,20,"blunt",DiceList,None,None,None,False)
+    CreateCard("purple",3,"CUOOOOOOOOPON",DiceList,Fight.RewardCards,None)
+    
+    SpeedDiceList = []
+    CreateSpeedDie(1,7,SpeedDiceList)
+    CreateSpeedDie(1,7,SpeedDiceList)
+    CreateSpeedDie(1,7,SpeedDiceList)
+    DeckList = CreateDeckList(["Payback","Solemn Lament","Make It Rain!","CUOOOOOOOOPON"])
+    ResistanceList = [-1,0,-2,1,-2,-1]
+    AttributedPassives = []
+    Tess = CreateCharacter(170,105,2,False,SpeedDiceList,DeckList,7,100,35,ResistanceList,"Tess",Part.ListOfFighters,"Rat",AttributedPassives,6)
+    
+    print("Tess T done")
+    
+    Fight.ListOfParts.append(Part)
+    ListOfFights.append(Fight)
+    
+    BattleContainer = Rect(-80,-20,100 + len(ListOfFights) * 50,80,fill = "black", border = "orange")
+    Battle.add(BattleContainer)
+    
+    index = 0
+    for Fight in ListOfFights:
+        FightIcon = Rect(index * 55,0,40,40,fill = "black", border = "orange")
+        FightIcon.rotateAngle = -45
+        FightNumber = Label(str(index + 1),FightIcon.centerX,FightIcon.centerY,fill = "orange")
+        
+        #Battle.Icon = FightIcon
+        Battle.add(FightIcon)
+        Battle.add(FightNumber)
+        FightIcon.Text = FightNumber
+        Fight.FightIcon = FightIcon
+        index += 1
+    
+    Battle.ListOfFights = ListOfFights
+    Battle.FightsUnlocked = 1
+    Battle.visible = False
+    Battle.StageNum = 6
+    Battle.IsSpecialStage = False
+    Battle.EmotionLevelCap = 4
+    app.StoryStages.append(Battle) 
+
 def CreateChefStage():
     
     Battle = Group()
@@ -1794,6 +1880,11 @@ def CreateChefStage():
     DiceList = []
     CreateDie(3,4,"pierce",DiceList,"NextBleed","On Hit","Enemy",False) #on hit 1 bleed
     CreateCard("blue",0,"Appetite",DiceList,Fight.RewardCards,None)
+
+    DiceList = []
+    CreateDie(4,5,"block",DiceList,None,None,None,False)
+    CreateDie(3,5,"pierce",DiceList,"NextBleed","On Hit","Enemy",False) #on hit 1 bleed
+    CreateCard("blue",1,"Cooking Prep",DiceList,Fight.RewardCards,None)
     
     DiceList = []
     CreateDie(2,6,"blunt",DiceList,"X=BleedRegain Health","On Hit","Self",False) #hit gain health based on bleed 
@@ -1808,14 +1899,14 @@ def CreateChefStage():
     DiceList = []
     CreateDie(1,6,"pierce",DiceList,None,None,None,False)
     CreateDie(4,4,"slash",DiceList,"4Regain Health","On Hit","Self",False) #hit gain 4 health
-    CreateCard("purple",1,"Cook Everything",DiceList,Fight.RewardCards,None) #Fight.RewardCards
+    CreateCard("purple",2,"Cook Everything",DiceList,Fight.RewardCards,None) #Fight.RewardCards
     
     
     
     SpeedDiceList = []
     CreateSpeedDie(2,5,SpeedDiceList)
-    DeckList = CreateDeckList(["Organ Harvesting","Organ Harvesting","Backstreets Shove","Claw Off","Run Away"])
-    ResistanceList = [0,0,1,0,1,0]
+    DeckList = CreateDeckList(["Appetite","Appetite","Cooking Prep","Cooking Prep","Cruelty","Cook Everything","Cook Everything","Ingredient Hunt"])
+    ResistanceList = [0,0,2,0,2,0]
     AttributedPassives = []
     Pierre = CreateCharacter(170,105,2,False,SpeedDiceList,DeckList,3,35,18,ResistanceList,"Pierre",Part.ListOfFighters,"Chef",AttributedPassives,1)
     
@@ -1823,10 +1914,10 @@ def CreateChefStage():
     
     SpeedDiceList = []
     CreateSpeedDie(2,5,SpeedDiceList)
-    DeckList = CreateDeckList(["Rat's Guide","Rat's Guide","Backstreets Shove","Claw Off","Run Away"])
-    ResistanceList = [0,1,0,0,2,1]
+    DeckList = CreateDeckList(["Appetite","Appetite","Keep It Fresh","Keep It Fresh","Cruelty","Trim Ingerdients","Ingredient Hunt","Ingredient Hunt"])
+    ResistanceList = [0,2,0,0,1,2]
     AttributedPassives = []
-    Jack = CreateCharacter(120,170,2,False,SpeedDiceList,DeckList,3,35,15,ResistanceList,"Jack",Part.ListOfFighters,"Chef",AttributedPassives,1)
+    Jack = CreateCharacter(120,170,2,False,SpeedDiceList,DeckList,3,33,18,ResistanceList,"Jack",Part.ListOfFighters,"Chef",AttributedPassives,1)
     
     print("Jack done")
     
